@@ -11,7 +11,8 @@ import {
   BookOpen,
   BarChart,
   Wallet,
-  ChevronRight
+  ChevronRight,
+  Receipt
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,11 @@ const menuItems = [
     title: "Accounts",
     path: "/accounts",
     icon: BookOpen,
+  },
+  {
+    title: "Invoices & Receipts",
+    path: "/invoices",
+    icon: Receipt,
   },
   {
     title: "Reports",

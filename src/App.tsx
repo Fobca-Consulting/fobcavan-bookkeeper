@@ -9,6 +9,7 @@ import Transactions from "./pages/Transactions";
 import Accounts from "./pages/Accounts";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
 import { SidebarProvider } from "./components/ui/sidebar";
 import Layout from "./components/Layout";
@@ -27,6 +28,7 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="accounts" element={<Accounts />} />
+              <Route path="invoices" element={<Invoices />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
