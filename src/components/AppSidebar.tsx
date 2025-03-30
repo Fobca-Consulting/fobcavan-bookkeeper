@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   ChartPie,
@@ -80,8 +79,12 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="flex justify-between items-center px-4 py-2 border-b">
         <div className="flex items-center gap-2">
-          <Wallet size={24} className="text-primary" />
-          <span className="font-bold text-lg text-white">FobcaBookkeeper</span>
+          <img 
+            src="/fobca-logo.png" 
+            alt="Fobca Logo" 
+            className="h-8 w-8"
+          />
+          <span className="font-bold text-lg text-white">Fobca</span>
         </div>
         <SidebarTrigger>
           <Menu size={18} />

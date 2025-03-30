@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BellIcon, UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,8 +14,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const Header = () => {
   return (
     <header className="bg-white border-b border-gray-200 py-3 px-6 flex justify-between items-center">
-      <div>
-        <h1 className="text-xl font-semibold">FobcaBookkeeper</h1>
+      <div className="flex items-center">
+        <img 
+          src="/fobca-logo.png" 
+          alt="Fobca Logo" 
+          className="h-8 w-8 mr-2"
+        />
+        <h1 className="text-xl font-semibold">Fobca Bookkeeper</h1>
       </div>
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="icon">

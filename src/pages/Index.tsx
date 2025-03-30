@@ -1,11 +1,17 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
 
 const Index = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+        <img 
+          src="/fobca-logo.png" 
+          alt="Fobca Logo" 
+          className="mx-auto mb-4 h-24 w-24"
+        />
+        <h1 className="text-4xl font-bold mb-4">Welcome to Fobca Bookkeeper</h1>
+        <p className="text-xl text-gray-600">Manage your finances with ease</p>
       </div>
     </div>
   );
