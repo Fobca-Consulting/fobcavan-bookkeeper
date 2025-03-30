@@ -77,10 +77,8 @@ const AppSidebar = () => {
           <Wallet size={24} className="text-primary" />
           <span className="font-bold text-lg text-white">FobcaBookkeeper</span>
         </div>
-        <SidebarTrigger asChild>
-          <button className="p-2 rounded-md hover:bg-sidebar-accent">
-            <Menu size={18} />
-          </button>
+        <SidebarTrigger>
+          <Menu size={18} />
         </SidebarTrigger>
       </SidebarHeader>
       <SidebarContent>
