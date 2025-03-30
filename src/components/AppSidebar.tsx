@@ -90,43 +90,42 @@ const AppSidebar = () => {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    className={cn(
-                      currentPath === item.path ? "bg-sidebar-accent" : ""
-                    )}
-                  >
-                    {item.submenu ? (
-                      <div className="w-full">
-                        <details className="group">
-                          <summary className="flex cursor-pointer items-center justify-between px-2 py-2 hover:bg-sidebar-accent rounded-md">
-                            <div className="flex items-center gap-3">
-                              <item.icon size={18} />
-                              <span>{item.title}</span>
-                            </div>
-                            <ChevronRight size={16} className="transition-transform group-open:rotate-90" />
-                          </summary>
-                          <ul className="mt-1 space-y-1 pl-8">
-                            {item.submenu.map((subitem) => (
-                              <li key={subitem.title}>
-                                <Link
-                                  to={subitem.path}
-                                  className="block rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent"
-                                >
-                                  {subitem.title}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
-                      </div>
-                    ) : (
+                  {item.submenu ? (
+                    <div className="w-full">
+                      <details className="group">
+                        <summary className="flex cursor-pointer items-center justify-between px-2 py-2 hover:bg-sidebar-accent rounded-md">
+                          <div className="flex items-center gap-3">
+                            <item.icon size={18} />
+                            <span>{item.title}</span>
+                          </div>
+                          <ChevronRight size={16} className="transition-transform group-open:rotate-90" />
+                        </summary>
+                        <ul className="mt-1 space-y-1 pl-8">
+                          {item.submenu.map((subitem) => (
+                            <li key={subitem.title}>
+                              <Link
+                                to={subitem.path}
+                                className="block rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent"
+                              >
+                                {subitem.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </div>
+                  ) : (
+                    <SidebarMenuButton
+                      className={cn(
+                        currentPath === item.path ? "bg-sidebar-accent" : ""
+                      )}
+                    >
                       <Link to={item.path} className="flex items-center gap-3 w-full">
                         <item.icon size={18} />
                         <span>{item.title}</span>
                       </Link>
-                    )}
-                  </SidebarMenuButton>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
