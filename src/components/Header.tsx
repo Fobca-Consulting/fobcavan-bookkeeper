@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BellIcon, UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,9 @@ const Header = () => {
     <header className="bg-white border-b border-gray-200 py-3 px-6 flex justify-between items-center">
       <div className="flex items-center">
         <img 
-          src="/fobca-logo.png" 
+          src="/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png" 
           alt="Fobca Logo" 
-          className="h-8 w-8 mr-2"
+          className="h-8 w-auto mr-2"
         />
         <h1 className="text-xl font-semibold">Fobca Bookkeeper</h1>
       </div>
