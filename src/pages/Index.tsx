@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bank, Users, Globe } from "lucide-react";
+import { Building, Users, Globe } from "lucide-react";
 
 const Index = () => {
   return (
@@ -22,7 +22,7 @@ const Index = () => {
           <Card className="h-full transition-all hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">Bank Reconciliation</CardTitle>
-              <Bank className="h-6 w-6 text-primary" />
+              <Building className="h-6 w-6 text-primary" />
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">

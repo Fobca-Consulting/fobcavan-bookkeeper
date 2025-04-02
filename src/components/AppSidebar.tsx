@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   LayoutDashboard,
@@ -6,7 +7,7 @@ import {
   BarChart2,
   Settings,
   LogOut,
-  Bank,
+  Building,
   Users,
   Globe,
 } from "lucide-react";
@@ -96,7 +97,7 @@ const AppSidebar = () => {
             }`
           }
         >
-          <Bank className="h-4 w-4 mr-2" />
+          <Building className="h-4 w-4 mr-2" />
           Bank Reconciliation
         </NavLink>
         <NavLink
