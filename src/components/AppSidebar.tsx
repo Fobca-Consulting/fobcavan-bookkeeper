@@ -1,149 +1,148 @@
-
-import { Link, useLocation } from "react-router-dom";
+import React from "react";
 import {
-  ChartPie,
-  CreditCard,
+  LayoutDashboard,
   FileText,
-  Home,
-  Settings,
-  Menu,
-  DollarSign,
-  BookOpen,
-  BarChart,
   Wallet,
-  ChevronRight,
-  Receipt
+  BarChart2,
+  Settings,
+  LogOut,
+  Bank,
+  Users,
+  Globe,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarTrigger,
-  SidebarFooter
-} from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
-
-const menuItems = [
-  {
-    title: "Dashboard",
-    path: "/",
-    icon: Home,
-  },
-  {
-    title: "Transactions",
-    path: "/transactions",
-    icon: CreditCard,
-  },
-  {
-    title: "Accounts",
-    path: "/accounts",
-    icon: BookOpen,
-  },
-  {
-    title: "Invoices & Receipts",
-    path: "/invoices",
-    icon: Receipt,
-  },
-  {
-    title: "Reports",
-    path: "/reports",
-    icon: FileText,
-    submenu: [
-      { title: "Income Statement", path: "/reports?type=income" },
-      { title: "Balance Sheet", path: "/reports?type=balance" },
-      { title: "Cash Flow", path: "/reports?type=cashflow" },
-      { title: "Accounts Receivable", path: "/reports?type=ar" },
-      { title: "Accounts Payable", path: "/reports?type=ap" },
-      { title: "Inventory", path: "/reports?type=inventory" },
-      { title: "Sales", path: "/reports?type=sales" },
-      { title: "Expenses", path: "/reports?type=expenses" },
-    ]
-  },
-  {
-    title: "Settings",
-    path: "/settings",
-    icon: Settings,
-  },
-];
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const AppSidebar = () => {
-  const location = useLocation();
-  const currentPath = location.pathname;
-
   return (
-    <Sidebar>
-      <SidebarHeader className="flex justify-between items-center px-4 py-2 border-b">
-        <div className="flex items-center gap-2">
-          <img 
-            src="/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png" 
-            alt="Fobca Logo" 
-            className="h-8 w-auto"
-          />
-          <span className="font-bold text-lg text-white">Fobca</span>
-        </div>
-        <SidebarTrigger>
-          <Menu size={18} />
-        </SidebarTrigger>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {item.submenu ? (
-                    <div className="w-full">
-                      <details className="group">
-                        <summary className="flex cursor-pointer items-center justify-between px-2 py-2 hover:bg-sidebar-accent rounded-md">
-                          <div className="flex items-center gap-3">
-                            <item.icon size={18} />
-                            <span>{item.title}</span>
-                          </div>
-                          <ChevronRight size={16} className="transition-transform group-open:rotate-90" />
-                        </summary>
-                        <ul className="mt-1 space-y-1 pl-8">
-                          {item.submenu.map((subitem) => (
-                            <li key={subitem.title}>
-                              <Link
-                                to={subitem.path}
-                                className="block rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent"
-                              >
-                                {subitem.title}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    </div>
-                  ) : (
-                    <SidebarMenuButton
-                      className={cn(
-                        currentPath === item.path ? "bg-sidebar-accent" : ""
-                      )}
-                    >
-                      <Link to={item.path} className="flex items-center gap-3 w-full">
-                        <item.icon size={18} />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter className="px-4 py-3 text-xs text-gray-400">
-        FobcaBookkeeper v1.0.0
-      </SidebarFooter>
-    </Sidebar>
+    <aside className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white">
+      <div className="h-16 flex items-center justify-center border-b border-gray-200">
+        <img 
+          src="/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png" 
+          alt="Fobca Logo" 
+          className="h-8 w-auto mr-2"
+        />
+        <h1 className="text-lg font-semibold">Fobca Bookkeeper</h1>
+      </div>
+      <nav className="flex-1 py-4 px-2 space-y-1">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <LayoutDashboard className="h-4 w-4 mr-2" />
+          Dashboard
+        </NavLink>
+        <NavLink
+          to="/transactions"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Transactions
+        </NavLink>
+        <NavLink
+          to="/accounts"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Wallet className="h-4 w-4 mr-2" />
+          Accounts
+        </NavLink>
+        <NavLink
+          to="/invoices"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Invoices
+        </NavLink>
+        <NavLink
+          to="/reports"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <BarChart2 className="h-4 w-4 mr-2" />
+          Reports
+        </NavLink>
+        <NavLink
+          to="/bank-reconciliation"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Bank className="h-4 w-4 mr-2" />
+          Bank Reconciliation
+        </NavLink>
+        <NavLink
+          to="/client-portal"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Client Portal
+        </NavLink>
+        <NavLink
+          to="/multi-currency"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Globe className="h-4 w-4 mr-2" />
+          Multi-Currency
+        </NavLink>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Settings
+        </NavLink>
+      </nav>
+      <div className="p-4 border-t border-gray-200">
+        <Button variant="ghost" className="w-full justify-start">
+          <Avatar className="h-8 w-8 mr-2">
+            <AvatarFallback className="bg-primary text-white">FB</AvatarFallback>
+          </Avatar>
+          Sign Out
+          <LogOut className="h-4 w-4 ml-auto" />
+        </Button>
+      </div>
+    </aside>
   );
 };
 
