@@ -89,6 +89,47 @@ const currencies = [
     exchangeRate: 82.6450,
     lastUpdated: "2023-05-26"
   },
+  // Added African currencies
+  { 
+    code: "NGN", 
+    name: "Nigerian Naira", 
+    symbol: "₦", 
+    isBase: false, 
+    exchangeRate: 1464.2500,
+    lastUpdated: "2023-05-26"
+  },
+  { 
+    code: "ZAR", 
+    name: "South African Rand", 
+    symbol: "R", 
+    isBase: false, 
+    exchangeRate: 18.4530,
+    lastUpdated: "2023-05-26"
+  },
+  { 
+    code: "KES", 
+    name: "Kenyan Shilling", 
+    symbol: "KSh", 
+    isBase: false, 
+    exchangeRate: 130.3520,
+    lastUpdated: "2023-05-26"
+  },
+  { 
+    code: "GHS", 
+    name: "Ghanaian Cedi", 
+    symbol: "₵", 
+    isBase: false, 
+    exchangeRate: 15.2350,
+    lastUpdated: "2023-05-26"
+  },
+  { 
+    code: "EGP", 
+    name: "Egyptian Pound", 
+    symbol: "E£", 
+    isBase: false, 
+    exchangeRate: 47.8910,
+    lastUpdated: "2023-05-26"
+  },
 ];
 
 // Mock recent transactions with currencies
@@ -652,3 +693,4 @@ const MultiCurrency = () => {
 };
 
 export default MultiCurrency;
+
