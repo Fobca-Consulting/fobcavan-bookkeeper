@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-  Plus, 
+  PlusCircle, 
   Search, 
   Filter, 
   Download, 
@@ -51,7 +50,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 
-// Mock data for invoices
 const invoiceData = [
   {
     id: "INV-2023-001",
@@ -82,7 +80,6 @@ const invoiceData = [
   }
 ];
 
-// Mock data for receipts
 const receiptData = [
   {
     id: "RCP-2023-001",
@@ -102,7 +99,6 @@ const receiptData = [
   }
 ];
 
-// Format currency
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -111,7 +107,6 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Status badge styling
 const getStatusStyle = (status: string) => {
   switch(status) {
     case 'paid':
@@ -379,7 +374,7 @@ const Invoices = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button>
-                <Plus className="mr-2 h-4 w-4" />
+                <PlusCircle className="mr-2 h-4 w-4" />
                 Create New
               </Button>
             </DropdownMenuTrigger>
@@ -402,7 +397,6 @@ const Invoices = () => {
           <CardTitle>Invoice & Receipt Management</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Filters and search */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -448,14 +442,12 @@ const Invoices = () => {
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs defaultValue="invoices" className="mb-6" onValueChange={(value) => setActiveTab(value)}>
             <TabsList>
               <TabsTrigger value="invoices">Invoices</TabsTrigger>
               <TabsTrigger value="receipts">Receipts</TabsTrigger>
             </TabsList>
 
-            {/* Invoices Tab Content */}
             <TabsContent value="invoices" className="mt-4">
               <Table>
                 <TableHeader>
@@ -517,7 +509,6 @@ const Invoices = () => {
               </Table>
             </TabsContent>
             
-            {/* Receipts Tab Content */}
             <TabsContent value="receipts" className="mt-4">
               <Table>
                 <TableHeader>
@@ -571,7 +562,6 @@ const Invoices = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Pagination */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Showing 1-{activeTab === "invoices" ? invoiceData.length : receiptData.length} of {activeTab === "invoices" ? invoiceData.length : receiptData.length} {activeTab}
@@ -588,7 +578,6 @@ const Invoices = () => {
         </CardContent>
       </Card>
 
-      {/* Create Invoice/Receipt Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
