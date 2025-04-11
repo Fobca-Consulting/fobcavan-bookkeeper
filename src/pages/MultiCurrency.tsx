@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/lib/utils";
 
 // Mock currency data
 const currencies = [
@@ -188,10 +188,7 @@ const recentTransactions = [
 
 // Format currency with the proper code
 const formatCurrencyWithCode = (amount: number, currencyCode: string) => {
-  const currency = currencies.find(c => c.code === currencyCode);
-  const symbol = currency ? currency.symbol : "$";
-  
-  return `${symbol}${amount.toFixed(2)} ${currencyCode}`;
+  return formatCurrency(amount, currencyCode, currencies);
 };
 
 const MultiCurrency = () => {
@@ -282,7 +279,7 @@ const MultiCurrency = () => {
                       <TableCell>{currency.symbol}</TableCell>
                       <TableCell>
                         {currency.isBase ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Base Currency
                           </span>
                         ) : null}
@@ -424,7 +421,7 @@ const MultiCurrency = () => {
                     </div>
                     <div className="text-2xl font-semibold">{currency.exchangeRate.toFixed(4)}</div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      1 USD = {currency.symbol}{currency.exchangeRate.toFixed(4)} {currency.code}
+                      1 USD = {formatCurrency(currency.exchangeRate, currency.code, [{ code: currency.code, symbol: currency.symbol }])}
                     </div>
                   </div>
                 ))}
@@ -693,4 +690,3 @@ const MultiCurrency = () => {
 };
 
 export default MultiCurrency;
-
