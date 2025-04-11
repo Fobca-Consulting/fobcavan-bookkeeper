@@ -1,26 +1,8 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { 
-  Banknote, 
-  PlusCircle, 
-  RefreshCw, 
-  Settings, 
-  CalendarDays, 
-  Globe, 
-  DollarSign, 
-  TrendingUp 
-} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -29,7 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/utils";
+import { 
+  Banknote, 
+  PlusCircle, 
+  RefreshCw, 
+  Settings, 
+  CalendarDays, 
+  Globe, 
+  TrendingUp 
+} from "lucide-react";
+import { CurrencyTable } from "@/components/multi-currency/CurrencyTable";
+import { ExchangeRateCalculator } from "@/components/multi-currency/ExchangeRateCalculator";
+import { CurrencyRateCards } from "@/components/multi-currency/CurrencyRateCards";
+import { TransactionTable } from "@/components/multi-currency/TransactionTable";
 
 // Mock currency data
 const currencies = [
@@ -89,7 +83,6 @@ const currencies = [
     exchangeRate: 82.6450,
     lastUpdated: "2023-05-26"
   },
-  // Added African currencies
   { 
     code: "NGN", 
     name: "Nigerian Naira", 
@@ -186,11 +179,6 @@ const recentTransactions = [
   },
 ];
 
-// Format currency with the proper code
-const formatCurrencyWithCode = (amount: number, currencyCode: string) => {
-  return formatCurrency(amount, currencyCode, currencies);
-};
-
 const MultiCurrency = () => {
   const [activeTab, setActiveTab] = useState("currencies");
   const [autoUpdateRates, setAutoUpdateRates] = useState(true);
@@ -259,40 +247,7 @@ const MultiCurrency = () => {
                 </div>
               </div>
               
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Currency Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Symbol</TableHead>
-                    <TableHead>Base Currency</TableHead>
-                    <TableHead className="text-right">Exchange Rate (to USD)</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currencies.map(currency => (
-                    <TableRow key={currency.code}>
-                      <TableCell className="font-medium">{currency.code}</TableCell>
-                      <TableCell>{currency.name}</TableCell>
-                      <TableCell>{currency.symbol}</TableCell>
-                      <TableCell>
-                        {currency.isBase ? (
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Base Currency
-                          </span>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-right">{currency.exchangeRate.toFixed(4)}</TableCell>
-                      <TableCell>{currency.lastUpdated}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">Edit</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <CurrencyTable currencies={currencies} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -367,65 +322,10 @@ const MultiCurrency = () => {
                 </div>
               </div>
               
-              <div className="rounded-lg border p-4 mb-6">
-                <h3 className="font-medium mb-3">Exchange Rate Calculator</h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Amount</label>
-                    <Input type="number" placeholder="1.00" defaultValue="1.00" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">From</label>
-                    <Select defaultValue="USD">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencies.map(currency => (
-                          <SelectItem key={currency.code} value={currency.code}>
-                            {currency.code} - {currency.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">To</label>
-                    <Select defaultValue="EUR">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencies.map(currency => (
-                          <SelectItem key={currency.code} value={currency.code}>
-                            {currency.code} - {currency.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 bg-muted rounded-md flex justify-between items-center">
-                  <span className="font-medium">Converted Amount:</span>
-                  <span className="text-lg font-medium">€0.9236</span>
-                </div>
-              </div>
+              <ExchangeRateCalculator currencies={currencies} />
               
               <h3 className="font-medium mb-4">Current Exchange Rates</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {currencies.filter(c => !c.isBase).map(currency => (
-                  <div key={currency.code} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="font-medium">{currency.code}</div>
-                      <div className="text-sm text-muted-foreground">{currency.name}</div>
-                    </div>
-                    <div className="text-2xl font-semibold">{currency.exchangeRate.toFixed(4)}</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      1 USD = {formatCurrency(currency.exchangeRate, currency.code, [{ code: currency.code, symbol: currency.symbol }])}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <CurrencyRateCards currencies={currencies} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -490,44 +390,7 @@ const MultiCurrency = () => {
                 </div>
               </div>
               
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Original Amount</TableHead>
-                    <TableHead className="text-right">Base Amount (USD)</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentTransactions.map(transaction => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{transaction.date}</TableCell>
-                      <TableCell className="font-medium">{transaction.description}</TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrencyWithCode(transaction.originalAmount, transaction.originalCurrency)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrencyWithCode(transaction.baseAmount, transaction.baseCurrency)}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          transaction.type === 'income' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">View</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <TransactionTable transactions={recentTransactions} currencies={currencies} />
               
               <div className="mt-6 flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">

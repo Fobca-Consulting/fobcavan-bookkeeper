@@ -13,6 +13,8 @@ import Invoices from "./pages/Invoices";
 import BankReconciliation from "./pages/BankReconciliation";
 import ClientPortal from "./pages/ClientPortal";
 import MultiCurrency from "./pages/MultiCurrency";
+import Customers from "./pages/Customers";
+import Vendors from "./pages/Vendors";
 import NotFound from "./pages/NotFound";
 import { SidebarProvider } from "./components/ui/sidebar";
 import Layout from "./components/Layout";
@@ -37,6 +39,8 @@ const App = () => (
               <Route path="bank-reconciliation" element={<BankReconciliation />} />
               <Route path="client-portal" element={<ClientPortal />} />
               <Route path="multi-currency" element={<MultiCurrency />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="vendors" element={<Vendors />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
