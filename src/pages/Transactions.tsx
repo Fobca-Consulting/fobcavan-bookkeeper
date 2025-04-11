@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,12 +15,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, PlusCircle, FileText, Download, Filter, MoreHorizontal, Calendar, ChevronUp, CreditCard, Search } from "lucide-react";
+import { 
+  ChevronDown, 
+  PlusCircle, 
+  FileText, 
+  Download, 
+  Filter, 
+  MoreHorizontal, 
+  Calendar, 
+  ChevronUp, 
+  Search, 
+  Edit,
+  Eye,
+  Trash
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TransactionForm } from "@/components/transactions/transaction-form";
+import { TransactionDetails } from "@/components/transactions/transaction-details";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { toast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/utils";
 
-// Mock transaction data
 const transactionData = [
   { 
     id: 1, 
@@ -102,17 +119,100 @@ const transactionData = [
   }
 ];
 
-// Format currency
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
-
 const Transactions = () => {
+  const [transactions, setTransactions] = useState(transactionData);
   const [activeTab, setActiveTab] = useState("all");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  
+  const [newTransactionOpen, setNewTransactionOpen] = useState(false);
+  const [editTransactionOpen, setEditTransactionOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  
+  const handleAddTransaction = (data: any, images: File[]) => {
+    const newTransaction = {
+      id: transactions.length + 1,
+      date: data.date.toISOString().split('T')[0],
+      description: data.description,
+      category: data.category,
+      account: data.account,
+      reference: data.reference,
+      amount: data.category === "Expense" ? -Math.abs(Number(data.amount)) : Math.abs(Number(data.amount)),
+      type: data.category === "Expense" ? "expense" : "income",
+      status: "completed",
+      details: data.details,
+      attachments: images.map(img => img.name),
+    };
+    
+    setTransactions([newTransaction, ...transactions]);
+    toast({
+      title: "Transaction Added",
+      description: "Your transaction has been added successfully.",
+    });
+  };
+  
+  const handleUpdateTransaction = (data: any, images: File[]) => {
+    if (!selectedTransaction) return;
+    
+    const updatedTransactions = transactions.map(transaction => 
+      transaction.id === selectedTransaction.id 
+        ? {
+            ...transaction,
+            date: data.date.toISOString().split('T')[0],
+            description: data.description,
+            category: data.category,
+            account: data.account,
+            reference: data.reference,
+            amount: data.category === "Expense" ? -Math.abs(Number(data.amount)) : Math.abs(Number(data.amount)),
+            type: data.category === "Expense" ? "expense" : "income",
+            details: data.details,
+            attachments: [...(transaction.attachments || []), ...images.map(img => img.name)],
+          }
+        : transaction
+    );
+    
+    setTransactions(updatedTransactions);
+    toast({
+      title: "Transaction Updated",
+      description: "Your transaction has been updated successfully.",
+    });
+  };
+  
+  const handleDeleteTransaction = () => {
+    if (!selectedTransaction) return;
+    
+    const filteredTransactions = transactions.filter(
+      transaction => transaction.id !== selectedTransaction.id
+    );
+    
+    setTransactions(filteredTransactions);
+    setDeleteDialogOpen(false);
+    setDetailsOpen(false);
+    toast({
+      title: "Transaction Deleted",
+      description: "Your transaction has been deleted successfully.",
+    });
+  };
+  
+  const viewTransactionDetails = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setDetailsOpen(true);
+  };
+  
+  const editTransaction = () => {
+    setDetailsOpen(false);
+    setEditTransactionOpen(true);
+  };
+  
+  const filteredTransactions = transactions.filter(transaction => {
+    if (activeTab === "all") return true;
+    if (activeTab === "income") return transaction.type === "income";
+    if (activeTab === "expense") return transaction.type === "expense";
+    if (activeTab === "pending") return transaction.status === "pending";
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -123,7 +223,7 @@ const Transactions = () => {
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setNewTransactionOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             New Transaction
           </Button>
@@ -135,7 +235,6 @@ const Transactions = () => {
           <CardTitle>Transaction Management</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Filters and search */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -145,8 +244,8 @@ const Transactions = () => {
                 className="pl-8 w-full"
               />
             </div>
-            <div className="flex gap-2">
-              <div className="w-[180px]">
+            <div className="flex gap-2 flex-wrap md:flex-nowrap">
+              <div className="w-full md:w-[180px]">
                 <Select defaultValue="all">
                   <SelectTrigger>
                     <div className="flex items-center">
@@ -161,27 +260,24 @@ const Transactions = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-[180px]">
-                <Select defaultValue="this-month">
-                  <SelectTrigger>
-                    <div className="flex items-center">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="Date Range" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="this-month">This Month</SelectItem>
-                    <SelectItem value="last-month">Last Month</SelectItem>
-                    <SelectItem value="this-year">This Year</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="w-full md:w-[180px]">
+                <DatePicker 
+                  date={startDate} 
+                  setDate={setStartDate} 
+                  placeholder="Start Date"
+                />
+              </div>
+              <div className="w-full md:w-[180px]">
+                <DatePicker 
+                  date={endDate} 
+                  setDate={setEndDate} 
+                  placeholder="End Date"
+                />
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="all" className="mb-6">
+          <Tabs defaultValue="all" className="mb-6" onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="income">Income</TabsTrigger>
@@ -189,7 +285,6 @@ const Transactions = () => {
               <TabsTrigger value="pending">Pending</TabsTrigger>
             </TabsList>
 
-            {/* Table content - same for all tabs in this demo */}
             <TabsContent value="all" className="mt-4">
               <Table>
                 <TableHeader>
@@ -200,77 +295,267 @@ const Transactions = () => {
                     <TableHead>Account</TableHead>
                     <TableHead>Reference</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactionData.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{transaction.date}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell>{transaction.category}</TableCell>
-                      <TableCell>{transaction.account}</TableCell>
-                      <TableCell>{transaction.reference}</TableCell>
-                      <TableCell className={`text-right font-medium ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{transaction.date}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell>{transaction.category}</TableCell>
+                        <TableCell>{transaction.account}</TableCell>
+                        <TableCell>{transaction.reference}</TableCell>
+                        <TableCell className={`text-right font-medium ${
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => viewTransactionDetails(transaction)}
+                            >
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setEditTransactionOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        No transactions found. Create a new transaction to get started.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>
             
             <TabsContent value="income">
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                Income transactions will be displayed here
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{transaction.date}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell>{transaction.category}</TableCell>
+                        <TableCell>{transaction.account}</TableCell>
+                        <TableCell>{transaction.reference}</TableCell>
+                        <TableCell className="text-right font-medium text-green-600">
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => viewTransactionDetails(transaction)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setEditTransactionOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        No income transactions found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </TabsContent>
             
             <TabsContent value="expense">
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                Expense transactions will be displayed here
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{transaction.date}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell>{transaction.category}</TableCell>
+                        <TableCell>{transaction.account}</TableCell>
+                        <TableCell>{transaction.reference}</TableCell>
+                        <TableCell className="text-right font-medium text-red-600">
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => viewTransactionDetails(transaction)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setEditTransactionOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        No expense transactions found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </TabsContent>
             
             <TabsContent value="pending">
               <div className="flex items-center justify-center py-8 text-muted-foreground">
-                Pending transactions will be displayed here
+                No pending transactions found
               </div>
             </TabsContent>
           </Tabs>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              Showing 1-7 of 7 transactions
+              Showing {filteredTransactions.length} of {transactions.length} transactions
             </div>
             <div className="flex gap-1">
-              <Button variant="outline" size="sm" disabled>
+              <Button variant="outline" size="sm" disabled={true}>
                 Previous
               </Button>
-              <Button variant="outline" size="sm" disabled>
+              <Button variant="outline" size="sm" disabled={true}>
                 Next
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <TransactionForm 
+        open={newTransactionOpen}
+        onOpenChange={setNewTransactionOpen}
+        onSave={handleAddTransaction}
+        dialogTitle="Add New Transaction"
+        dialogDescription="Enter the details for the new transaction."
+        submitButtonText="Add Transaction"
+      />
+
+      <TransactionForm 
+        open={editTransactionOpen}
+        onOpenChange={setEditTransactionOpen}
+        transaction={selectedTransaction}
+        onSave={handleUpdateTransaction}
+        dialogTitle="Edit Transaction"
+        dialogDescription="Update the transaction details."
+        submitButtonText="Update Transaction"
+      />
+
+      {selectedTransaction && (
+        <TransactionDetails 
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          transaction={selectedTransaction}
+          onEdit={editTransaction}
+          onDelete={() => setDeleteDialogOpen(true)}
+        />
+      )}
+
+      <ConfirmationDialog 
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Transaction"
+        description="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteTransaction}
+        variant="destructive"
+      />
     </div>
   );
 };
