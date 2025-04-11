@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  BriefcasePlus, 
+  Briefcase, 
   Eye, 
   Filter, 
   PlusCircle, 
@@ -114,7 +114,7 @@ const Vendors = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Vendors</h1>
         <Button>
-          <BriefcasePlus className="mr-2 h-4 w-4" />
+          <Briefcase className="mr-2 h-4 w-4" />
           Add Vendor
         </Button>
       </div>
