@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,10 +16,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, ArrowUpDown, Search } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ArrowUpDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-// Mock accounts data
 const accountsData = {
   assets: [
     { id: 1, code: "1001", name: "Cash", type: "Asset", balance: 8500, description: "Cash on hand" },
@@ -51,7 +49,6 @@ const accountsData = {
   ]
 };
 
-// Format currency
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -66,7 +63,7 @@ const Accounts = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Chart of Accounts</h1>
         <Button>
-          <Plus className="mr-2 h-4 w-4" />
+          <PlusCircle className="mr-2 h-4 w-4" />
           Add Account
         </Button>
       </div>
@@ -76,7 +73,6 @@ const Accounts = () => {
           <CardTitle>Account Management</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Search bar */}
           <div className="relative mb-6">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -86,7 +82,6 @@ const Accounts = () => {
             />
           </div>
 
-          {/* Account categories tabs */}
           <Tabs defaultValue="all">
             <TabsList className="mb-4">
               <TabsTrigger value="all">All</TabsTrigger>
@@ -97,7 +92,6 @@ const Accounts = () => {
               <TabsTrigger value="expenses">Expenses</TabsTrigger>
             </TabsList>
 
-            {/* All accounts tab */}
             <TabsContent value="all">
               <Table>
                 <TableHeader>
@@ -141,7 +135,6 @@ const Accounts = () => {
               </Table>
             </TabsContent>
 
-            {/* Assets tab */}
             <TabsContent value="assets">
               <Table>
                 <TableHeader>
@@ -184,7 +177,6 @@ const Accounts = () => {
               </Table>
             </TabsContent>
 
-            {/* Placeholder tabs */}
             <TabsContent value="liabilities">
               <Table>
                 <TableHeader>
@@ -227,7 +219,6 @@ const Accounts = () => {
               </Table>
             </TabsContent>
 
-            {/* The remaining tabs would follow the same pattern */}
             <TabsContent value="equity">
               <div className="py-4">Equity accounts will appear here</div>
             </TabsContent>
