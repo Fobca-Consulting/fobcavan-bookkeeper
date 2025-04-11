@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,22 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 
-const transactionData = [
+// Define a type for transaction data
+interface Transaction {
+  id: number;
+  date: string;
+  description: string;
+  category: string;
+  account: string;
+  reference: string;
+  amount: number;
+  type: string;
+  status: string;
+  details?: string;
+  attachments?: string[];
+}
+
+const transactionData: Transaction[] = [
   { 
     id: 1, 
     date: "2023-05-15", 
@@ -49,7 +65,9 @@ const transactionData = [
     reference: "INV-001",
     amount: 2500, 
     type: "income", 
-    status: "completed" 
+    status: "completed",
+    details: "Monthly sales revenue",
+    attachments: []
   },
   { 
     id: 2, 
@@ -60,7 +78,9 @@ const transactionData = [
     reference: "PO-245",
     amount: -350, 
     type: "expense", 
-    status: "completed" 
+    status: "completed",
+    details: "Printer paper and ink cartridges",
+    attachments: []
   },
   { 
     id: 3, 
@@ -71,7 +91,9 @@ const transactionData = [
     reference: "PAY-123",
     amount: 1800, 
     type: "income", 
-    status: "completed" 
+    status: "completed",
+    details: "Payment for project completion",
+    attachments: []
   },
   { 
     id: 4, 
@@ -82,7 +104,9 @@ const transactionData = [
     reference: "BILL-42",
     amount: -420, 
     type: "expense", 
-    status: "completed" 
+    status: "completed",
+    details: "Electricity and water bill",
+    attachments: []
   },
   { 
     id: 5, 
@@ -93,7 +117,9 @@ const transactionData = [
     reference: "RENT-MAY",
     amount: -2200, 
     type: "expense", 
-    status: "completed" 
+    status: "completed",
+    details: "Monthly office rent",
+    attachments: []
   },
   { 
     id: 6, 
@@ -104,7 +130,9 @@ const transactionData = [
     reference: "SUB-001",
     amount: -99, 
     type: "expense", 
-    status: "completed" 
+    status: "completed",
+    details: "Monthly subscription for design software",
+    attachments: []
   },
   { 
     id: 7, 
@@ -115,7 +143,9 @@ const transactionData = [
     reference: "INV-002",
     amount: 3200, 
     type: "income", 
-    status: "completed" 
+    status: "completed",
+    details: "Product sales for the week",
+    attachments: []
   }
 ];
 

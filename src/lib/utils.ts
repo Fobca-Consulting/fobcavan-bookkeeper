@@ -15,7 +15,7 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatCurrency(
   amount: number, 
-  currencyCode: string, 
+  currencyCode: string = "USD", 
   currencies?: Array<{ code: string; symbol: string; }>
 ): string {
   // Find currency symbol if currencies array is provided
@@ -31,6 +31,5 @@ export function formatCurrency(
   return `${symbol}${new Intl.NumberFormat('en-US', { 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount)} ${currencyCode}`;
+  }).format(Math.abs(amount))}`;
 }
-
