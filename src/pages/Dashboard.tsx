@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownIcon, ArrowUpIcon, DollarSign, CreditCard, Users, ShoppingCart, ChevronUp, ChevronDown, BarChart, PieChart, ArrowRight, PlusCircle } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, DollarSign, CreditCard, Users, ShoppingCart, ChevronUp, ChevronDown, BarChart, PieChart, ArrowRight, PlusCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
@@ -38,6 +38,7 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
           <Button size="sm">
@@ -214,4 +215,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
