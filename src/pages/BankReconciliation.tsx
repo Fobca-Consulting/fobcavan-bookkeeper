@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { 
   ChevronDown, 
   Download, 
-  Plus, 
+  PlusCircle, 
   RefreshCw, 
   Check, 
   X, 
@@ -119,7 +119,7 @@ const BankReconciliation = () => {
             Export
           </Button>
           <Button size="sm">
-            <Plus className="mr-2 h-4 w-4" />
+            <PlusCircle className="mr-2 h-4 w-4" />
             New Reconciliation
           </Button>
         </div>
