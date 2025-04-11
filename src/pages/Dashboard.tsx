@@ -1,6 +1,7 @@
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownIcon, ArrowUpIcon, DollarSign, CreditCard, Users, ShoppingCart, ChevronUp, ChevronDown, BarChart, PieChart, ArrowRight } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, DollarSign, CreditCard, Users, ShoppingCart, ChevronUp, ChevronDown, BarChart, PieChart, ArrowRight, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
@@ -40,6 +41,7 @@ const Dashboard = () => {
             Export
           </Button>
           <Button size="sm">
+            <PlusCircle className="mr-2 h-4 w-4" />
             New Transaction
           </Button>
         </div>
@@ -212,3 +214,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
