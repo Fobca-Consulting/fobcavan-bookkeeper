@@ -53,12 +53,14 @@ import {
   Link as LinkIcon,
   Copy,
   User,
-  Building
+  Building,
+  ExternalLink
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from 'react-router-dom';
 
 // Interface for client data
 interface Client {
@@ -164,6 +166,7 @@ const ClientManagement = () => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [currentTab, setCurrentTab] = useState("all");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Filter clients based on search term and current tab
   const filteredClients = clients.filter(
@@ -200,6 +203,16 @@ const ClientManagement = () => {
     // In a real app, this would generate a unique link with a token
     const slug = businessName.toLowerCase().replace(/\s+/g, '-');
     return `https://fobca.app/onboarding/${slug}`;
+  };
+
+  const navigateToClientDashboard = (clientId: number) => {
+    const clientSlug = clients.find(c => c.id === clientId)?.name.toLowerCase().replace(/\s+/g, '-') || 'client';
+    navigate(`/client/${clientSlug}`);
+    
+    toast({
+      title: "Accessing client dashboard",
+      description: `You are now viewing ${clients.find(c => c.id === clientId)?.name}'s dashboard`,
+    });
   };
 
   return (
@@ -334,7 +347,7 @@ const ClientManagement = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="all" onValueChange={setCurrentTab}>
+      <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all">All Clients</TabsTrigger>
           <TabsTrigger value="direct">Direct Clients</TabsTrigger>
@@ -400,48 +413,63 @@ const ClientManagement = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => setSelectedClient(client)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <FileText className="mr-2 h-4 w-4" />
-                              Share Documents
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Mail className="mr-2 h-4 w-4" />
-                              Send Email
-                            </DropdownMenuItem>
-                            {client.clientType === "indirect" && (
-                              <DropdownMenuItem onClick={() => handleCopyLink(client.portalUrl || "")}>
-                                <LinkIcon className="mr-2 h-4 w-4" />
-                                Copy Portal Link
+                        <div className="flex space-x-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigateToClientDashboard(client.id)}
+                            className="flex items-center text-xs"
+                          >
+                            <ExternalLink className="mr-1 h-3 w-3" />
+                            Access
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setSelectedClient(client)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            {client.clientType === "direct" && (
+                              <DropdownMenuItem onClick={() => navigateToClientDashboard(client.id)}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Access Dashboard
+                              </DropdownMenuItem>
                               <DropdownMenuItem>
-                                <div className="flex items-center w-full">
-                                  <Switch 
-                                    id={`portal-access-${client.id}`}
-                                    checked={client.portalAccess}
-                                    className="mr-2"
-                                  />
-                                  <span>Portal Access</span>
-                                </div>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Share Documents
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send Email
+                              </DropdownMenuItem>
+                              {client.clientType === "indirect" && (
+                                <DropdownMenuItem onClick={() => handleCopyLink(client.portalUrl || "")}>
+                                  <LinkIcon className="mr-2 h-4 w-4" />
+                                  Copy Portal Link
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              {client.clientType === "direct" && (
+                                <DropdownMenuItem>
+                                  <div className="flex items-center w-full">
+                                    <Switch 
+                                      id={`portal-access-${client.id}`}
+                                      checked={client.portalAccess}
+                                      className="mr-2"
+                                    />
+                                    <span>Portal Access</span>
+                                  </div>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -712,6 +740,16 @@ const ClientManagement = () => {
                 Client details and shared documents
               </DialogDescription>
             </DialogHeader>
+            
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => navigateToClientDashboard(selectedClient.id)}
+                className="mb-4"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Access Client Dashboard
+              </Button>
+            </div>
             
             <Tabs defaultValue="info">
               <TabsList>
