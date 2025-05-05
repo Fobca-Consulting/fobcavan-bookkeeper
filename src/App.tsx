@@ -12,10 +12,14 @@ import Settings from "./pages/Settings";
 import Invoices from "./pages/Invoices";
 import BankReconciliation from "./pages/BankReconciliation";
 import ClientPortal from "./pages/ClientPortal";
+import ClientManagement from "./pages/ClientManagement";
 import MultiCurrency from "./pages/MultiCurrency";
 import Customers from "./pages/Customers";
 import Vendors from "./pages/Vendors";
 import NotFound from "./pages/NotFound";
+import SignIn from "./pages/SignIn";
+import ClientOnboarding from "./pages/ClientOnboarding";
+import BusinessSignIn from "./pages/BusinessSignIn";
 import { SidebarProvider } from "./components/ui/sidebar";
 import Layout from "./components/Layout";
 
@@ -29,6 +33,14 @@ const App = () => (
       <BrowserRouter>
         <SidebarProvider>
           <Routes>
+            {/* Public Routes */}
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/business-signin" element={<BusinessSignIn />} />
+            <Route path="/business-signin/:businessId" element={<BusinessSignIn />} />
+            <Route path="/onboarding" element={<ClientOnboarding />} />
+            <Route path="/onboarding/:businessId" element={<ClientOnboarding />} />
+            
+            {/* Protected Routes */}
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="transactions" element={<Transactions />} />
@@ -38,6 +50,7 @@ const App = () => (
               <Route path="settings" element={<Settings />} />
               <Route path="bank-reconciliation" element={<BankReconciliation />} />
               <Route path="client-portal" element={<ClientPortal />} />
+              <Route path="client-management" element={<ClientManagement />} />
               <Route path="multi-currency" element={<MultiCurrency />} />
               <Route path="customers" element={<Customers />} />
               <Route path="vendors" element={<Vendors />} />

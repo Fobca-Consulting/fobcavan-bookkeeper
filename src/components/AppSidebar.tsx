@@ -125,7 +125,7 @@ const AppSidebar = () => {
           Bank Reconciliation
         </NavLink>
         <NavLink
-          to="/client-portal"
+          to="/client-management"
           className={({ isActive }) =>
             `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
               isActive ? "bg-gray-100 text-primary" : "text-gray-700"
@@ -133,7 +133,7 @@ const AppSidebar = () => {
           }
         >
           <Users className="h-4 w-4 mr-2" />
-          Client Portal
+          Client Management
         </NavLink>
         <NavLink
           to="/multi-currency"
@@ -159,7 +159,7 @@ const AppSidebar = () => {
         </NavLink>
       </nav>
       <div className="p-4 border-t border-gray-200">
-        <Button variant="ghost" className="w-full justify-start">
+        <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/signin"}>
           <Avatar className="h-8 w-8 mr-2">
             <AvatarFallback className="bg-primary text-white">FB</AvatarFallback>
           </Avatar>
