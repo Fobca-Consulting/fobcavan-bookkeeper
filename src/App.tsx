@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Accounts from "./pages/Accounts";
@@ -11,8 +11,6 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Invoices from "./pages/Invoices";
 import BankReconciliation from "./pages/BankReconciliation";
-import ClientPortal from "./pages/ClientPortal";
-import ClientManagement from "./pages/ClientManagement";
 import MultiCurrency from "./pages/MultiCurrency";
 import Customers from "./pages/Customers";
 import Vendors from "./pages/Vendors";
@@ -21,7 +19,6 @@ import SignIn from "./pages/SignIn";
 import ClientOnboarding from "./pages/ClientOnboarding";
 import BusinessSignIn from "./pages/BusinessSignIn";
 import { SidebarProvider } from "./components/ui/sidebar";
-import Layout from "./components/Layout";
 import FobcaDashboard from "./pages/fobca/FobcaDashboard";
 import FobcaLayout from "./components/FobcaLayout";
 import UserManagement from "./pages/fobca/UserManagement";
@@ -29,6 +26,7 @@ import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientLayout from "./components/ClientLayout";
 import ClientSettings from "./pages/client/ClientSettings";
 import ClientUsers from "./pages/client/ClientUsers";
+import ClientManagement from "./pages/fobca/ClientManagement";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +50,6 @@ const App = () => (
               <Route index element={<FobcaDashboard />} />
               <Route path="client-management" element={<ClientManagement />} />
               <Route path="user-management" element={<UserManagement />} />
-              <Route path="settings" element={<Settings />} />
             </Route>
             
             {/* Client Portal Routes */}
@@ -70,22 +67,11 @@ const App = () => (
               <Route path="users" element={<ClientUsers />} />
             </Route>
             
-            {/* Legacy Routes - redirect to FOBCA dashboard */}
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="accounts" element={<Accounts />} />
-              <Route path="invoices" element={<Invoices />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="bank-reconciliation" element={<BankReconciliation />} />
-              <Route path="client-portal" element={<ClientPortal />} />
-              <Route path="client-management" element={<ClientManagement />} />
-              <Route path="multi-currency" element={<MultiCurrency />} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="vendors" element={<Vendors />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
+            {/* Redirect root to FOBCA dashboard */}
+            <Route path="/" element={<Navigate to="/signin" replace />} />
+            
+            {/* 404 for any other routes */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </SidebarProvider>
       </BrowserRouter>

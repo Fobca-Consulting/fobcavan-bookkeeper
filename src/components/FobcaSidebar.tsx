@@ -2,7 +2,6 @@
 import React from "react";
 import {
   LayoutDashboard,
-  Settings,
   LogOut,
   Users,
   UserCog
@@ -43,6 +42,7 @@ const FobcaSidebar = () => {
               isActive ? "bg-gray-100 text-primary" : "text-gray-700"
             }`
           }
+          end
         >
           <LayoutDashboard className="h-4 w-4 mr-2" />
           Dashboard
@@ -68,17 +68,6 @@ const FobcaSidebar = () => {
         >
           <UserCog className="h-4 w-4 mr-2" />
           User Management
-        </NavLink>
-        <NavLink
-          to="/fobca/settings"
-          className={({ isActive }) =>
-            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
-              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
-            }`
-          }
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          Settings
         </NavLink>
       </nav>
       <div className="p-4 border-t border-gray-200">
