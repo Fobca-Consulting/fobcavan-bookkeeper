@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -152,6 +151,7 @@ const UserManagement = () => {
 
   const addUserMutation = useMutation({
     mutationFn: async (values: AddUserFormValues) => {
+      // Fix: Use the correct parameters according to Supabase's API
       const { data, error } = await supabase.auth.admin.createUser({
         email: values.email,
         email_confirm: true,
@@ -159,7 +159,8 @@ const UserManagement = () => {
           full_name: values.full_name,
           role: values.role,
         },
-        send_email_invite: values.send_email,
+        // Fix: Use the correct property for sending invite emails
+        ...(values.send_email ? { password: null } : {})
       });
       
       if (error) throw error;
