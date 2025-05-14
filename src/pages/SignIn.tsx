@@ -26,6 +26,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 // Form schema
 const loginSchema = z.object({
@@ -37,6 +39,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signIn, session } = useAuth();
@@ -58,6 +61,7 @@ const SignIn = () => {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    setLoginError(null);
     const { email, password } = values;
     
     const { success, error } = await signIn(email, password);
@@ -69,12 +73,19 @@ const SignIn = () => {
       });
       navigate("/fobca");
     } else {
+      setLoginError(error || "Invalid email or password. Please try again.");
       toast({
         title: "Login failed",
         description: error || "Please check your credentials and try again",
         variant: "destructive",
       });
     }
+  };
+  
+  // Default admin credentials hint
+  const fillDefaultAdmin = () => {
+    form.setValue("email", "admin@fobca.com");
+    form.setValue("password", "admin123456");
   };
 
   return (
@@ -94,6 +105,14 @@ const SignIn = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {loginError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Login Failed</AlertTitle>
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -142,6 +161,16 @@ const SignIn = () => {
               </Button>
             </form>
           </Form>
+          
+          <div className="mt-4 text-center">
+            <button 
+              type="button" 
+              className="text-xs text-blue-600 hover:underline" 
+              onClick={fillDefaultAdmin}
+            >
+              Use default admin credentials
+            </button>
+          </div>
         </CardContent>
         <CardFooter className="flex justify-center text-sm text-gray-600">
           Forgot your password? Contact your administrator

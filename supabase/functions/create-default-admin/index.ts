@@ -14,17 +14,19 @@ const supabaseAdmin = createClient(
 const handler = async (_req: Request): Promise<Response> => {
   try {
     // Check if admin user already exists
-    const { count, error: countError } = await supabaseAdmin
+    const { data: existingAdmins, error: countError } = await supabaseAdmin
       .from('profiles')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('role', 'admin');
 
     if (countError) throw countError;
 
+    console.log("Existing admins:", existingAdmins?.length || 0);
+
     // Only create default admin if no admin users exist
-    if (count === 0) {
-      const email = "oluwafemi.olukoya@gmail.com";
-      const password = "adminpassword"; // In production, this should be a secure random password
+    if (!existingAdmins || existingAdmins.length === 0) {
+      const email = "admin@fobca.com";
+      const password = "admin123456"; // More secure default password
       const fullName = "Admin User";
       
       // Create the admin user
@@ -40,11 +42,12 @@ const handler = async (_req: Request): Promise<Response> => {
       
       if (error) throw error;
       
-      console.log("Default admin user created successfully");
+      console.log("Default admin user created successfully:", data);
       
       return new Response(JSON.stringify({ 
         success: true,
-        message: "Default admin user created successfully" 
+        message: "Default admin user created successfully",
+        user: { email, fullName }
       }), {
         headers: { "Content-Type": "application/json" },
         status: 200,

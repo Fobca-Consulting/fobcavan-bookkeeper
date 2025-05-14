@@ -151,16 +151,20 @@ const UserManagement = () => {
 
   const addUserMutation = useMutation({
     mutationFn: async (values: AddUserFormValues) => {
-      // Fix: Use the correct parameters according to Supabase's API
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Create user with or without password based on send_email flag
+      const createUserOptions = {
         email: values.email,
         email_confirm: true,
         user_metadata: {
           full_name: values.full_name,
           role: values.role,
         },
-        // Fix: Use the correct property for sending invite emails
-        ...(values.send_email ? { password: null } : {})
+        ...(values.send_email ? { password: null } : { password: 'tempP@ssw0rd' })
+      };
+      
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        method: 'POST',
+        body: createUserOptions
       });
       
       if (error) throw error;
