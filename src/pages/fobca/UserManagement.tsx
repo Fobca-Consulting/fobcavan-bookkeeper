@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -52,7 +53,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
@@ -159,7 +159,8 @@ const UserManagement = () => {
           full_name: values.full_name,
           role: values.role,
         },
-        ...(values.send_email ? { password: null } : { password: 'tempP@ssw0rd' })
+        // Fixed: Instead of using password: null, we use proper typing for the admin-create-user function
+        ...(values.send_email ? {} : { password: 'tempP@ssw0rd' })
       };
       
       const { data, error } = await supabase.functions.invoke('admin-create-user', {

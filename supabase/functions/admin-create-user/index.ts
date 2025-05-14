@@ -1,75 +1,87 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
-const supabaseAdmin = createClient(
-  // Supabase API URL - env var exported by default.
-  Deno.env.get("SUPABASE_URL") ?? "",
-  // Supabase SERVICE ROLE KEY - env var exported by default.
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-);
-
-interface CreateUserRequest {
+interface CreateUserPayload {
   email: string;
   password?: string;
-  email_confirm?: boolean;
-  user_metadata?: {
-    full_name?: string;
-    role?: string;
+  email_confirm: boolean;
+  user_metadata: {
+    full_name: string;
+    role: string;
   };
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight request
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const handler = async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
-  
+
   try {
-    const userDetails: CreateUserRequest = await req.json();
+    // Get request body
+    const payload: CreateUserPayload = await req.json();
     
-    console.log("Creating user with details:", JSON.stringify({
-      ...userDetails,
-      password: userDetails.password ? "[REDACTED]" : null
-    }));
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Create the user
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: userDetails.email,
-      password: userDetails.password || null,
-      email_confirm: userDetails.email_confirm || false,
-      user_metadata: userDetails.user_metadata || {}
+    console.log("Creating user:", payload.email);
+    
+    // Create user
+    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+      email: payload.email,
+      password: payload.password,
+      email_confirm: payload.email_confirm,
+      user_metadata: payload.user_metadata,
     });
-    
-    if (error) {
-      console.error("Error creating user:", error);
-      throw error;
+
+    if (userError) {
+      console.error("Error creating user:", userError);
+      return new Response(
+        JSON.stringify({ error: userError.message }),
+        { 
+          status: 400, 
+          headers: { 
+            "Content-Type": "application/json",
+            ...corsHeaders
+          } 
+        }
+      );
     }
+
+    // If successful
+    return new Response(
+      JSON.stringify({ 
+        user: userData.user,
+        message: "User created successfully" 
+      }),
+      { 
+        status: 200, 
+        headers: { 
+          "Content-Type": "application/json",
+          ...corsHeaders
+        } 
+      }
+    );
     
-    console.log("User created successfully:", data.user.id);
-    
-    return new Response(JSON.stringify({ 
-      success: true,
-      message: "User created successfully",
-      userId: data.user.id
-    }), {
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-      status: 200,
-    });
   } catch (error) {
     console.error("Error in admin-create-user function:", error);
-    
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message 
-    }), {
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { 
+          "Content-Type": "application/json",
+          ...corsHeaders
+        } 
+      }
+    );
   }
 };
 
