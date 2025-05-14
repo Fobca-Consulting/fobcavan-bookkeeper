@@ -1,23 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
   Card, 
   CardContent, 
   CardDescription, 
+  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -26,7 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -34,356 +35,296 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Eye, 
-  MoreVertical, 
-  UserPlus, 
-  Lock, 
-  Edit,
-  UserCheck,
-  Clock,
-  Search,
-  Mail,
-  User,
-  CheckCircle,
-  XCircle,
-  Loader2
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Search, Plus, MoreVertical, Mail, User, Shield, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-// User data interface
-interface FobcaUser {
+interface UserProfile {
   id: string;
-  name: string;
+  full_name: string;
+  role: string;
   email: string;
-  role: "admin" | "manager" | "staff";
   active: boolean;
-  lastActive: string | null;
-  clients: { id: string; name: string }[];
+  last_active: string | null;
+  created_at: string;
 }
 
-// Form schema for adding a new user
+// Schema for add user form
 const addUserSchema = z.object({
-  full_name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  role: z.enum(["admin", "manager", "staff"]),
-  send_invite: z.boolean().default(true),
+  full_name: z.string().min(2, { message: "Name is required" }),
+  email: z.string().email({ message: "Valid email is required" }),
+  role: z.string().min(1, { message: "Role is required" }),
+  send_email: z.boolean().optional(),
 });
 
 type AddUserFormValues = z.infer<typeof addUserSchema>;
 
+const fetchUsers = async (): Promise<UserProfile[]> => {
+  // Get all users from auth.users and join with profiles
+  const { data: users, error } = await supabase
+    .from('profiles')
+    .select(`
+      id,
+      full_name,
+      role,
+      active,
+      last_active,
+      created_at
+    `);
+
+  if (error) throw error;
+
+  // Get email for each user since it's not in the profiles table
+  const usersWithEmail = await Promise.all(
+    users.map(async (user) => {
+      const { data: userData, error: userError } = await supabase
+        .rpc('get_user_email', { user_id: user.id });
+      
+      if (userError) console.error("Error fetching user email:", userError);
+      
+      return {
+        ...user,
+        email: userData || 'Email not available',
+      };
+    })
+  );
+
+  return usersWithEmail;
+};
+
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<FobcaUser | null>(null);
-  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
-  const [users, setUsers] = useState<FobcaUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processingUser, setProcessingUser] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [editUserOpen, setEditUserOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  
+  const queryClient = useQueryClient();
+  
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers
+  });
 
-  // Initialize add user form
   const form = useForm<AddUserFormValues>({
     resolver: zodResolver(addUserSchema),
     defaultValues: {
-      full_name: "",
-      email: "",
-      role: "staff",
-      send_invite: true,
+      full_name: '',
+      email: '',
+      role: 'staff',
+      send_email: true,
     },
   });
 
-  // Filter users based on search term
-  const filteredUsers = users.filter(
-    user => {
-      return user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             user.role.toLowerCase().includes(searchTerm.toLowerCase());
-    }
-  );
+  const editForm = useForm<AddUserFormValues>({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: {
+      full_name: '',
+      email: '',
+      role: 'staff',
+      send_email: false,
+    },
+  });
 
-  // Fetch users from the database
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (error) {
-        throw error;
-      }
-
-      // Get user emails from auth users
-      const usersWithEmails = await Promise.all(profiles.map(async (profile) => {
-        // Get user details from auth.users (usually done through admin function)
-        const { data: userData, error: userError } = await supabase
-          .rpc('get_user_email', { user_id: profile.id });
-
-        // Get clients this user has access to
-        const { data: clientAccess, error: clientError } = await supabase
-          .from('client_access')
-          .select('client_id')
-          .eq('user_id', profile.id);
-
-        return {
-          id: profile.id,
-          name: profile.full_name || 'Unnamed User',
-          email: userData?.email || 'No email available',
-          role: profile.role as "admin" | "manager" | "staff",
-          active: profile.active || false,
-          lastActive: profile.last_active,
-          clients: clientAccess?.map(ca => ({ id: ca.client_id, name: `Client ${ca.client_id.substring(0, 8)}` })) || []
-        };
-      }));
-
-      setUsers(usersWithEmails);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const formatLastActive = (timestamp: string | null) => {
-    if (!timestamp) return 'Never';
-    
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMins < 60) {
-      return diffMins === 0 ? 'Just now' : `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-    } else if (diffHours < 24) {
-      return `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays < 2) {
-      return `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
-
-  const handleUserStatusChange = async (userId: string, newStatus: boolean) => {
-    setProcessingUser(userId);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ active: newStatus })
-        .eq('id', userId);
-
-      if (error) {
-        throw error;
-      }
-      
-      // Update local state
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, active: newStatus } : user
-      ));
-      
-      // If viewing user details, update the selected user as well
-      if (selectedUser?.id === userId) {
-        setSelectedUser({ ...selectedUser, active: newStatus });
-      }
-      
-      toast({
-        title: "User status updated",
-        description: `User has been ${newStatus ? "activated" : "deactivated"}`,
-      });
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update user status. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessingUser(null);
-    }
-  };
-
-  const handleResetPassword = async (userId: string) => {
-    setProcessingUser(userId);
-    try {
-      const user = users.find(u => u.id === userId);
-      if (!user) throw new Error("User not found");
-
-      // In production, this would use an admin api or edge function to trigger password reset
-      
-      toast({
-        title: "Password reset email sent",
-        description: "User will receive an email with instructions to reset password",
-      });
-    } catch (error) {
-      console.error('Error resetting password:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send password reset. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessingUser(null);
-    }
-  };
-
-  const handleAddUser = async (values: AddUserFormValues) => {
-    try {
-      // Generate a random temporary password
-      const tempPassword = Math.random().toString(36).slice(-8);
-      
-      // Create user in auth system
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+  const addUserMutation = useMutation({
+    mutationFn: async (values: AddUserFormValues) => {
+      const { data, error } = await supabase.auth.admin.createUser({
         email: values.email,
-        password: tempPassword,
         email_confirm: true,
         user_metadata: {
           full_name: values.full_name,
-          role: values.role
-        }
-      });
-
-      if (authError) {
-        throw authError;
-      }
-
-      // Profile will be created automatically via database trigger
-      
-      if (values.send_invite) {
-        // Call the edge function to send welcome email
-        const response = await fetch(`https://rkkxtpywwtpveoevzvod.supabase.co/functions/v1/send-welcome-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
-          },
-          body: JSON.stringify({
-            email: values.email,
-            name: values.full_name,
-            tempPassword
-          }),
-        });
-        
-        if (!response.ok) {
-          console.error('Failed to send welcome email');
-        }
-      }
-      
-      toast({
-        title: "User added",
-        description: "New user has been added to the system",
+          role: values.role,
+        },
+        send_email_invite: values.send_email,
       });
       
-      // Reset form and close dialog
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['users']});
+      setAddUserOpen(false);
       form.reset();
-      setShowAddUserDialog(false);
-      
-      // Refresh user list
-      fetchUsers();
-    } catch (error: any) {
-      console.error('Error adding user:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to add user. Please try again.",
+        title: "User added successfully",
+        description: "The new user has been added to the system",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to add user",
+        description: error.message,
         variant: "destructive",
       });
     }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async (values: AddUserFormValues & { id?: string }) => {
+      if (!values.id) throw new Error("User ID is required");
+      
+      // Update user metadata and email
+      const { error } = await supabase.auth.admin.updateUserById(values.id, {
+        email: values.email,
+        user_metadata: {
+          full_name: values.full_name,
+          role: values.role,
+        },
+      });
+      
+      if (error) throw error;
+      
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          full_name: values.full_name,
+          role: values.role,
+        })
+        .eq('id', values.id);
+        
+      if (profileError) throw profileError;
+      
+      return values;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['users']});
+      setEditUserOpen(false);
+      editForm.reset();
+      toast({
+        title: "User updated successfully",
+        description: "The user information has been updated",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update user",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: async ({ userId, active }: { userId: string; active: boolean }) => {
+      // Update user's active status in profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({ active })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      return { userId, active };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({queryKey: ['users']});
+      toast({
+        title: `User ${data.active ? 'activated' : 'deactivated'}`,
+        description: `The user has been ${data.active ? 'activated' : 'deactivated'} successfully`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update user status",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const onAddUserSubmit = (values: AddUserFormValues) => {
+    addUserMutation.mutate(values);
   };
 
-  // Create initial admin user
-  const createDefaultAdminUser = async () => {
-    try {
-      const { count, error: countError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      if (countError) throw countError;
-
-      // Only create default admin if no users exist
-      if (count === 0) {
-        const email = "oluwafemi.olukoya@gmail.com";
-        const password = "adminpassword"; // In production, this should be a secure random password
-        const fullName = "Admin User";
-        
-        // Create the admin user
-        const { data, error } = await supabase.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: {
-            full_name: fullName,
-            role: 'admin'
-          }
-        });
-        
-        if (error) throw error;
-        
-        console.log("Default admin user created successfully");
-        fetchUsers();
-      }
-    } catch (error) {
-      console.error("Error creating default admin user:", error);
+  const onEditUserSubmit = (values: AddUserFormValues) => {
+    if (currentUser) {
+      updateUserMutation.mutate({
+        ...values,
+        id: currentUser.id,
+      });
     }
   };
 
-  // Create default admin on first load if needed
-  useEffect(() => {
-    createDefaultAdminUser();
-  }, []);
+  const handleEditUser = (user: UserProfile) => {
+    setCurrentUser(user);
+    editForm.reset({
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role,
+    });
+    setEditUserOpen(true);
+  };
+
+  const handleToggleUserStatus = (user: UserProfile) => {
+    toggleUserStatusMutation.mutate({
+      userId: user.id,
+      active: !user.active,
+    });
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user =>
+    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Badge variant="destructive">Admin</Badge>;
+      case 'manager':
+        return <Badge variant="default">Manager</Badge>;
+      default:
+        return <Badge variant="outline">Staff</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">User Management</h1>
-        <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+        <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
           <DialogTrigger asChild>
             <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" />
               Add User
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
-                Add a new user to the FOBCA Bookkeeper system
+                Add a new staff member to the FOBCA Bookkeeping system
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleAddUser)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onAddUserSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="full_name"
@@ -392,8 +333,8 @@ const UserManagement = () => {
                       <FormLabel>Full Name</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input id="name" className="pl-10" placeholder="Enter user's full name" {...field} />
+                          <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input placeholder="Enter full name" className="pl-9" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -408,8 +349,8 @@ const UserManagement = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input id="email" type="email" className="pl-10" placeholder="Enter email address" {...field} />
+                          <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input type="email" placeholder="Enter email address" className="pl-9" {...field} />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -424,8 +365,8 @@ const UserManagement = () => {
                       <FormLabel>Role</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a role" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -434,33 +375,43 @@ const UserManagement = () => {
                           <SelectItem value="staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Admin can access all features, Manager can manage clients but not users, Staff has limited access
-                      </p>
+                      <FormDescription>
+                        <div className="flex items-center">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Access level for the user
+                        </div>
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={form.control}
-                  name="send_invite"
+                  name="send_email"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2 rounded-md border p-3">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>Send Welcome Email</FormLabel>
+                        <FormDescription>
+                          Send an email invitation to set up their account
+                        </FormDescription>
+                      </div>
                       <FormControl>
-                        <Switch 
+                        <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-0.5">
-                        <FormLabel>Send welcome email with login instructions</FormLabel>
-                      </div>
                     </FormItem>
                   )}
                 />
-                <DialogFooter className="mt-4">
-                  <Button variant="outline" type="button" onClick={() => setShowAddUserDialog(false)}>Cancel</Button>
-                  <Button type="submit">Add User</Button>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddUserOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={addUserMutation.isPending}>
+                    {addUserMutation.isPending ? "Adding..." : "Add User"}
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
@@ -468,19 +419,27 @@ const UserManagement = () => {
         </Dialog>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search users..." 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-        
-        <Card>
-          <CardContent className="p-0">
+      <div className="flex items-center space-x-2">
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <Input 
+          placeholder="Search users..." 
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <p>Loading users...</p>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">
+              <p>Error loading users: {(error as Error).message}</p>
+            </div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -489,234 +448,158 @@ const UserManagement = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Last Active</TableHead>
-                  <TableHead>Client Access</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-                        <span>Loading users...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      {searchTerm ? 'No users match your search' : 'No users found'}
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No users found. Try adjusting your search.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredUsers.map(user => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>
-                        <Badge variant={
-                          user.role === "admin" ? "default" : 
-                          user.role === "manager" ? "outline" : 
-                          "secondary"
-                        }>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {user.active ? (
-                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                          )}
-                          <span>{user.active ? "Active" : "Inactive"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1 text-muted-foreground" />
-                          {formatLastActive(user.lastActive)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {user.clients.length > 0 ? (
-                          <span>{user.clients.length} clients</span>
+                        {user.active ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Active
+                          </Badge>
                         ) : (
-                          <span className="text-muted-foreground">No access</span>
+                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Inactive
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex space-x-1">
-                          <Button variant="ghost" size="icon" onClick={() => setSelectedUser(user)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setSelectedUser(user)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleResetPassword(user.id)}
-                                disabled={!!processingUser}
-                              >
-                                {processingUser === user.id ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Lock className="mr-2 h-4 w-4" />
-                                )}
-                                Reset Password
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleUserStatusChange(user.id, !user.active)}
-                                disabled={!!processingUser}
-                              >
-                                {processingUser === user.id ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : user.active ? (
-                                  <XCircle className="mr-2 h-4 w-4" />
-                                ) : (
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                )}
-                                {user.active ? "Deactivate User" : "Activate User"}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        {user.last_active ? (
+                          <div className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1 text-muted-foreground" />
+                            {new Date(user.last_active).toLocaleDateString()}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Never</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
+                              {user.active ? 'Deactivate' : 'Activate'} User
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Reset Password</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* User Detail Dialog */}
-      {selectedUser && (
-        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-          <DialogContent className="max-w-xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center">
-                {selectedUser.name}
-                <Badge className="ml-2" variant={
-                  selectedUser.role === "admin" ? "default" : 
-                  selectedUser.role === "manager" ? "outline" : 
-                  "secondary"
-                }>
-                  {selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1)}
-                </Badge>
-              </DialogTitle>
-              <DialogDescription>
-                User details and client access
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Email</Label>
-                  <p className="text-sm font-medium">{selectedUser.email}</p>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <div className="flex items-center mt-1">
-                    {selectedUser.active ? (
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                    )}
-                    <span>{selectedUser.active ? "Active" : "Inactive"}</span>
-                  </div>
-                </div>
-                <div>
-                  <Label>Last Active</Label>
-                  <p className="text-sm font-medium">{formatLastActive(selectedUser.lastActive)}</p>
-                </div>
-                <div>
-                  <Label>Account Status</Label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Switch 
-                      id="user-active"
-                      checked={selectedUser.active}
-                      onCheckedChange={(checked) => handleUserStatusChange(selectedUser.id, checked)}
-                      disabled={!!processingUser}
-                    />
-                    <Label htmlFor="user-active">
-                      {processingUser === selectedUser.id ? (
-                        <div className="flex items-center">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Processing...
-                        </div>
-                      ) : (
-                        selectedUser.active ? "Active" : "Inactive"
-                      )}
-                    </Label>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="mb-2 block">Client Access</Label>
-                {selectedUser.clients.length > 0 ? (
-                  <Card>
-                    <CardContent className="p-4">
-                      <ul className="space-y-2">
-                        {selectedUser.clients.map((client, index) => (
-                          <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <span>{client.name}</span>
-                            <Badge variant="outline">Access Granted</Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="text-center p-4 bg-gray-50 rounded-md text-muted-foreground">
-                    <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>This user doesn't have access to any clients yet.</p>
-                  </div>
+      {/* Edit User Dialog */}
+      <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information and permissions
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditUserSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="active-status">Active Status</Label>
+                <Switch 
+                  id="active-status" 
+                  checked={currentUser?.active} 
+                  onCheckedChange={() => {
+                    if (currentUser) handleToggleUserStatus(currentUser);
+                  }}
+                />
               </div>
-            </div>
-            
-            <DialogFooter className="flex justify-between items-center">
-              <div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleResetPassword(selectedUser.id)}
-                  disabled={!!processingUser}
-                >
-                  {processingUser === selectedUser.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Lock className="mr-2 h-4 w-4" />
-                  )}
-                  Reset Password
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditUserOpen(false)}>
+                  Cancel
                 </Button>
-              </div>
-              <Button variant="outline" onClick={() => setSelectedUser(null)}>
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+                <Button type="submit" disabled={updateUserMutation.isPending}>
+                  {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

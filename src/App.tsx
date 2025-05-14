@@ -28,6 +28,7 @@ import ClientSettings from "./pages/client/ClientSettings";
 import ClientUsers from "./pages/client/ClientUsers";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ClientManagement from "./pages/fobca/ClientManagement";
 
 const queryClient = new QueryClient();
 
