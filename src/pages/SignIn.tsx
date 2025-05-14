@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Card, 
@@ -25,11 +25,12 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Form schema
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters")
+  password: z.string().min(1, "Password is required")
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -38,6 +39,14 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, session } = useAuth();
+
+  // Check for authenticated session and redirect if found
+  useEffect(() => {
+    if (session) {
+      navigate("/fobca");
+    }
+  }, [session, navigate]);
 
   // Initialize form
   const form = useForm<LoginFormValues>({
@@ -48,18 +57,24 @@ const SignIn = () => {
     }
   });
 
-  const onSubmit = (values: LoginFormValues) => {
-    // In a real app, this would authenticate with your server
-    console.log("Login values:", values);
+  const onSubmit = async (values: LoginFormValues) => {
+    const { email, password } = values;
     
-    // For now, we'll simulate a successful login
-    toast({
-      title: "Login successful",
-      description: "Welcome back to FOBCA Bookkeeper!",
-    });
+    const { success, error } = await signIn(email, password);
     
-    // Redirect to dashboard
-    navigate("/");
+    if (success) {
+      toast({
+        title: "Login successful",
+        description: "Welcome back to FOBCA Bookkeeper!",
+      });
+      navigate("/fobca");
+    } else {
+      toast({
+        title: "Login failed",
+        description: error || "Please check your credentials and try again",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

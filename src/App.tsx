@@ -26,56 +26,67 @@ import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientLayout from "./components/ClientLayout";
 import ClientSettings from "./pages/client/ClientSettings";
 import ClientUsers from "./pages/client/ClientUsers";
-import ClientManagement from "./pages/fobca/ClientManagement";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <SidebarProvider>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/business-signin" element={<BusinessSignIn />} />
-            <Route path="/business-signin/:businessId" element={<BusinessSignIn />} />
-            <Route path="/onboarding" element={<ClientOnboarding />} />
-            <Route path="/onboarding/:businessId" element={<ClientOnboarding />} />
-            
-            {/* FOBCA Admin Routes */}
-            <Route path="/fobca" element={<FobcaLayout />}>
-              <Route index element={<FobcaDashboard />} />
-              <Route path="client-management" element={<ClientManagement />} />
-              <Route path="user-management" element={<UserManagement />} />
-            </Route>
-            
-            {/* Client Portal Routes */}
-            <Route path="/client/:clientId" element={<ClientLayout />}>
-              <Route index element={<ClientDashboard />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="accounts" element={<Accounts />} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="vendors" element={<Vendors />} />
-              <Route path="invoices" element={<Invoices />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="bank-reconciliation" element={<BankReconciliation />} />
-              <Route path="multi-currency" element={<MultiCurrency />} />
-              <Route path="settings" element={<ClientSettings />} />
-              <Route path="users" element={<ClientUsers />} />
-            </Route>
-            
-            {/* Redirect root to FOBCA dashboard */}
-            <Route path="/" element={<Navigate to="/signin" replace />} />
-            
-            {/* 404 for any other routes */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SidebarProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <SidebarProvider>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/business-signin" element={<BusinessSignIn />} />
+              <Route path="/business-signin/:businessId" element={<BusinessSignIn />} />
+              <Route path="/onboarding" element={<ClientOnboarding />} />
+              <Route path="/onboarding/:businessId" element={<ClientOnboarding />} />
+              
+              {/* FOBCA Admin Routes - Protected */}
+              <Route path="/fobca" element={
+                <ProtectedRoute>
+                  <FobcaLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<FobcaDashboard />} />
+                <Route path="client-management" element={<ClientManagement />} />
+                <Route path="user-management" element={<UserManagement />} />
+              </Route>
+              
+              {/* Client Portal Routes - Protected */}
+              <Route path="/client/:clientId" element={
+                <ProtectedRoute>
+                  <ClientLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<ClientDashboard />} />
+                <Route path="transactions" element={<Transactions />} />
+                <Route path="accounts" element={<Accounts />} />
+                <Route path="customers" element={<Customers />} />
+                <Route path="vendors" element={<Vendors />} />
+                <Route path="invoices" element={<Invoices />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="bank-reconciliation" element={<BankReconciliation />} />
+                <Route path="multi-currency" element={<MultiCurrency />} />
+                <Route path="settings" element={<ClientSettings />} />
+                <Route path="users" element={<ClientUsers />} />
+              </Route>
+              
+              {/* Redirect root to signin */}
+              <Route path="/" element={<Navigate to="/signin" replace />} />
+              
+              {/* 404 for any other routes */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
