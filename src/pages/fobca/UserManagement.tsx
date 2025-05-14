@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -66,7 +65,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 interface UserProfile {
   id: string;
   full_name: string;
-  role: string;
+  role: 'admin' | 'manager' | 'staff'; // Updated role type to be specific
   email: string;
   active: boolean;
   last_active: string | null;
@@ -77,7 +76,7 @@ interface UserProfile {
 const addUserSchema = z.object({
   full_name: z.string().min(2, { message: "Name is required" }),
   email: z.string().email({ message: "Valid email is required" }),
-  role: z.string().min(1, { message: "Role is required" }),
+  role: z.enum(['admin', 'manager', 'staff']), // Use enum to match the database enum type
   send_email: z.boolean().optional(),
 });
 
@@ -369,7 +368,10 @@ const UserManagement = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select 
+                        onValueChange={(value: 'admin' | 'manager' | 'staff') => field.onChange(value)} 
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a role" />
@@ -568,7 +570,10 @@ const UserManagement = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={(value: 'admin' | 'manager' | 'staff') => field.onChange(value)}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a role" />
