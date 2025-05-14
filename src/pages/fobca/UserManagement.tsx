@@ -40,7 +40,7 @@ import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 // Define user role type to match the database enum
@@ -113,28 +113,42 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Use a join to get user emails along with profile data
-      const { data, error } = await supabase
+      // First fetch profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("*, email:auth.users(email)")
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      // Process the joined data to match our UserProfile interface
-      const processedUsers = data.map((user) => ({
-        id: user.id,
-        email: user.email?.email || "No email found",
-        full_name: user.full_name,
-        role: user.role as UserRole, // Cast to our enum type
-        active: user.active,
-        last_active: user.last_sign_in_at || "Never",
-        created_at: new Date(user.created_at).toLocaleDateString(),
-      }));
+      // For each profile, get the associated email from auth.users
+      const usersWithEmails: UserProfile[] = [];
+      
+      for (const profile of profilesData) {
+        // Get user email through a separate query
+        const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
+        
+        const email = userData?.user?.email || "No email found";
+        
+        usersWithEmails.push({
+          id: profile.id,
+          email: email,
+          full_name: profile.full_name || "",
+          role: (profile.role as UserRole) || "staff",
+          active: profile.active || false,
+          last_active: profile.last_active ? new Date(profile.last_active).toLocaleString() : "Never",
+          created_at: profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "",
+        });
+      }
 
-      setUsers(processedUsers);
+      setUsers(usersWithEmails);
     } catch (error: any) {
       console.error("Error fetching users:", error);
+      toast({
+        title: "Error fetching users",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
