@@ -17,6 +17,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Mock businesses data - in a real app, this would come from a database
 const businesses = [
@@ -39,17 +40,27 @@ interface ClientSidebarProps {
 const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signOut } = useAuth();
 
   // Find business data based on clientId
   const businessData = businesses.find(b => b.id === clientId) || businesses[0];
 
-  const handleSignOut = () => {
-    // In a real app, this would handle authentication logout
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out",
-    });
-    navigate("/business-signin");
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out",
+      });
+      navigate("/business-signin");
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast({
+        title: "Sign out failed",
+        description: "An error occurred while signing out",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
