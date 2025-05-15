@@ -29,6 +29,7 @@ import ClientUsers from "./pages/client/ClientUsers";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ClientManagement from "./pages/fobca/ClientManagement";
+import ResetPassword from "./pages/ResetPassword";
 import { useEffect } from "react";
 import { setupDefaultAdmin } from "./utils/setupAdmin";
 
@@ -54,6 +55,7 @@ const App = () => {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/signin" element={<SignIn />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/business-signin" element={<BusinessSignIn />} />
                 <Route path="/business-signin/:businessId" element={<BusinessSignIn />} />
                 <Route path="/onboarding" element={<ClientOnboarding />} />

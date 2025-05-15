@@ -43,6 +43,7 @@ export const useUsers = () => {
       toast({
         title: "Error fetching users",
         description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -69,6 +70,7 @@ export const useUsers = () => {
       toast({
         title: "Error",
         description: error.message,
+        variant: "destructive",
       });
     }
   };
@@ -94,11 +96,40 @@ export const useUsers = () => {
           description: `${data.full_name} has been updated successfully`,
         });
       } else {
-        // Create new user
-        // In a real app, this would use an admin API to create the user
+        // Create new user via edge function
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+
+        if (!token) {
+          throw new Error('No authenticated session found');
+        }
+
+        const response = await fetch(
+          'https://rkkxtpywwtpveoevzvod.supabase.co/functions/v1/admin-create-user',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              email: data.email,
+              full_name: data.full_name,
+              role: data.role,
+              active: data.active,
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create user');
+        }
+
         toast({
           title: "User Created",
-          description: `Invitation sent to ${data.email}`,
+          description: `${data.full_name} has been created and an invitation email was sent`,
         });
       }
 
@@ -109,6 +140,7 @@ export const useUsers = () => {
       toast({
         title: "Error",
         description: error.message,
+        variant: "destructive",
       });
     }
   };

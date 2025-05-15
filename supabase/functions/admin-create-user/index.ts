@@ -1,85 +1,149 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
-interface CreateUserPayload {
+interface CreateUserRequest {
   email: string;
-  password?: string;
-  email_confirm: boolean;
-  user_metadata: {
-    full_name: string;
-    role: string;
-  };
+  full_name: string;
+  role: string;
+  active: boolean;
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const generateTemporaryPassword = (): string => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 };
 
-const handler = async (req: Request) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight request
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    // Get request body
-    const payload: CreateUserPayload = await req.json();
-    
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    console.log("Creating user:", payload.email);
-    
-    // Create user
-    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-      email: payload.email,
-      password: payload.password,
-      email_confirm: payload.email_confirm,
-      user_metadata: payload.user_metadata,
+    // Verify that the request is authenticated
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing Authorization header');
+    }
+
+    // Create Supabase admin client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Verify the JWT token to get user ID
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: callingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !callingUser) {
+      throw new Error("Unauthorized");
+    }
+
+    // Check if calling user is an admin
+    const { data: callerProfile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", callingUser.id)
+      .single();
+
+    if (profileError || callerProfile.role !== "admin") {
+      throw new Error("Only admins can create users");
+    }
+
+    // Get user data from request
+    const { email, full_name, role, active }: CreateUserRequest = await req.json();
+
+    // Generate temporary password
+    const tempPassword = generateTemporaryPassword();
+
+    // Create the user in Supabase Auth
+    const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name, role },
     });
 
-    if (userError) {
-      console.error("Error creating user:", userError);
-      return new Response(
-        JSON.stringify({ error: userError.message }),
-        { 
-          status: 400, 
-          headers: { 
+    if (createUserError) {
+      throw createUserError;
+    }
+
+    // Update the profile to set active status
+    if (authData.user) {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ active })
+        .eq("id", authData.user.id);
+
+      // Send welcome email
+      await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-welcome-email`,
+        {
+          method: "POST",
+          headers: {
             "Content-Type": "application/json",
-            ...corsHeaders
-          } 
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email,
+            name: full_name,
+            tempPassword,
+          }),
         }
       );
     }
 
-    // If successful
+    // Return success response
     return new Response(
       JSON.stringify({ 
-        user: userData.user,
-        message: "User created successfully" 
+        success: true, 
+        message: "User created successfully",
+        user: {
+          id: authData.user.id,
+          email,
+          full_name,
+          role,
+          active,
+          created_at: authData.user.created_at,
+        }
       }),
-      { 
-        status: 200, 
-        headers: { 
+      {
+        headers: {
+          ...corsHeaders,
           "Content-Type": "application/json",
-          ...corsHeaders
-        } 
+        },
+        status: 200,
       }
     );
-    
   } catch (error) {
-    console.error("Error in admin-create-user function:", error);
+    console.error("Error creating user:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { 
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
           "Content-Type": "application/json",
-          ...corsHeaders
-        } 
+        },
+        status: error.message === "Unauthorized" || error.message === "Only admins can create users" ? 403 : 500,
       }
     );
   }

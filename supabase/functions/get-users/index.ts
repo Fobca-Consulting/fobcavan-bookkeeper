@@ -1,90 +1,114 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1"
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight request
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    // Create a Supabase client with the admin role
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    )
-
-    // Get auth header from request
-    const authHeader = req.headers.get('Authorization')
+    // Verify that the request is authenticated
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header provided' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      throw new Error('Missing Authorization header');
     }
 
-    // Verify the JWT token to ensure the request is from an authenticated user
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    // Create Supabase admin client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Verify the JWT token to get user ID
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: callingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !callingUser) {
+      throw new Error("Unauthorized");
+    }
+
+    // Check if calling user is an admin
+    const { data: callerProfile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", callingUser.id)
+      .single();
+
+    if (profileError || callerProfile.role !== "admin") {
+      throw new Error("Only admins can access user list");
+    }
+
+    // Get all users with their profiles
+    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
     
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (authUsersError) {
+      throw authUsersError;
     }
 
-    // Fetch user profiles
+    // Get all profiles
     const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
+      .from("profiles")
+      .select("*");
 
     if (profilesError) {
-      throw profilesError
+      throw profilesError;
     }
 
-    // Get detailed user data including emails
-    const usersWithEmails = await Promise.all(
-      profiles.map(async (profile) => {
-        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(profile.id)
-        
-        if (userError) {
-          console.error(`Error fetching user ${profile.id}:`, userError)
-          return {
-            ...profile,
-            email: 'Error retrieving email',
-          }
-        }
-        
-        return {
-          id: profile.id,
-          email: userData?.user?.email || 'No email found',
-          full_name: profile.full_name || '',
-          role: profile.role || 'staff',
-          active: profile.active !== undefined ? profile.active : false,
-          last_active: profile.last_active ? new Date(profile.last_active).toLocaleString() : 'Never',
-          created_at: profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '',
-        }
-      })
-    )
+    // Combine auth and profile data
+    const users = authUsers.users.map(authUser => {
+      const profile = profiles.find(p => p.id === authUser.id) || {};
+      
+      return {
+        id: authUser.id,
+        email: authUser.email,
+        full_name: profile.full_name || authUser.user_metadata?.full_name || 'Unnamed User',
+        role: profile.role || authUser.user_metadata?.role || 'staff',
+        active: profile.active !== undefined ? profile.active : true,
+        last_active: profile.last_active || null,
+        created_at: authUser.created_at,
+      };
+    });
 
+    // Return success response
     return new Response(
-      JSON.stringify({ users: usersWithEmails }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({ 
+        users 
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error('Error in get-users function:', error)
+    console.error("Error fetching users:", error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: error.message === "Unauthorized" || error.message === "Only admins can access user list" ? 403 : 500,
+      }
+    );
   }
-})
+};
+
+serve(handler);

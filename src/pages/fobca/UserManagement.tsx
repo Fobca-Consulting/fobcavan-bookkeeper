@@ -1,9 +1,13 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import UserTable from "@/components/users/UserTable";
 import UserFormDialog from "@/components/users/UserFormDialog";
 import useUsers from "@/hooks/users/useUsers";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const UserManagement = () => {
   const {
@@ -18,6 +22,39 @@ const UserManagement = () => {
     toggleUserStatus,
     handleFormSubmit,
   } = useUsers();
+  
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Check if the current user is an admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        if (!user) return;
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data.role !== 'admin') {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this page",
+            variant: "destructive",
+          });
+          navigate('/fobca');
+        }
+      } catch (err) {
+        console.error("Error checking admin status:", err);
+      }
+    };
+    
+    checkAdmin();
+  }, [user, navigate]);
 
   return (
     <div className="container mx-auto py-6">

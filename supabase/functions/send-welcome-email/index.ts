@@ -26,16 +26,21 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log(`Sending welcome email to ${email}`);
     
-    // In a real implementation, you would use a service like Resend
+    // In a real implementation, you would use SendGrid
     // Since we don't have the API key yet, we'll simulate success
     
-    // For a real implementation:
-    // const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    // await resend.emails.send({
-    //   from: "onboarding@fobcabookkeeper.com",
-    //   to: [email],
-    //   subject: "Welcome to FOBCA Bookkeeper",
-    //   html: generateWelcomeEmailHtml(name, tempPassword)
+    // For a real implementation with SendGrid:
+    // const sgMail = require('@sendgrid/mail');
+    // sgMail.setApiKey(Deno.env.get("SENDGRID_API_KEY"));
+    // await sgMail.send({
+    //   to: email,
+    //   from: 'noreply@fobcabookkeeper.com',
+    //   subject: 'Welcome to FOBCA Bookkeeper',
+    //   html: `<p>Hello ${name},</p>
+    //          <p>You've been invited to join FOBCA Bookkeeper.</p>
+    //          <p>Please use the following temporary password to login: 
+    //             <strong>${tempPassword}</strong></p>
+    //          <p>You will be prompted to change your password after first login.</p>`,
     // });
     
     return new Response(
