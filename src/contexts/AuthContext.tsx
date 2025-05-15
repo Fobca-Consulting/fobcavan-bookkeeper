@@ -132,8 +132,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     console.log("Signing out");
-    await supabase.auth.signOut();
-    // Don't need to clear state here as onAuthStateChange will handle it
+    try {
+      // First, clear any local state
+      setUser(null);
+      setSession(null);
+      
+      // Then call Supabase signOut to clear tokens and session
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error during sign out:", error.message);
+        toast({
+          title: "Sign out issue",
+          description: "There was an issue signing you out completely. Your session might still be active.",
+          variant: "destructive",
+        });
+      } else {
+        console.log("Successfully signed out from Supabase");
+      }
+      
+      // Force clear localStorage to ensure all tokens are removed
+      if (typeof window !== 'undefined') {
+        // Only focus on auth-related items
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('supabase.auth.refreshToken');
+      }
+      
+    } catch (error: any) {
+      console.error("Unexpected error during sign out:", error);
+      toast({
+        title: "Sign out error",
+        description: "An unexpected error occurred during sign out",
+        variant: "destructive",
+      });
+    }
   };
 
   const forgotPassword = async (email: string) => {
