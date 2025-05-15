@@ -41,7 +41,6 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [redirectDelay, setRedirectDelay] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, user, session, loading } = useAuth();
@@ -60,21 +59,19 @@ const SignIn = () => {
 
   // Check for authenticated session and redirect if found
   useEffect(() => {
-    console.log("SignIn auth state:", { loading, user, session, isProcessing, redirectDelay, from });
+    console.log("SignIn auth state:", { loading, user, session, isProcessing });
     
-    if (!loading && user && session && !isProcessing && !redirectDelay) {
-      console.log("User is authenticated, setting redirect delay...");
-      setRedirectDelay(true);
+    if (!loading && user && session) {
+      console.log("User is authenticated, redirecting to:", from);
       
-      // Short delay to prevent redirect loops
+      // Redirect with a very short delay to avoid potential race conditions
       const timer = setTimeout(() => {
-        console.log("Redirecting to:", from);
         navigate(from, { replace: true });
-      }, 500);
+      }, 100);
       
       return () => clearTimeout(timer);
     }
-  }, [user, session, loading, navigate, from, isProcessing, redirectDelay]);
+  }, [user, session, loading, navigate, from]);
 
   const onSubmit = async (values: LoginFormValues) => {
     if (isProcessing) return;
@@ -121,27 +118,27 @@ const SignIn = () => {
     form.setValue("password", "admin123456");
   };
 
-  // If still loading auth state or redirecting, show a loading indicator
-  if (loading || (user && session && redirectDelay)) {
+  // If still loading auth state, show a loading indicator
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           <p className="mt-4 text-gray-600">
-            {loading ? "Checking authentication..." : "Login successful, redirecting..."}
+            Checking authentication...
           </p>
         </div>
       </div>
     );
   }
 
-  // If already authenticated but not yet redirecting, show a loading indicator
-  if (!loading && user && session && !redirectDelay) {
+  // If already authenticated, show a brief loading before redirect happens
+  if (!loading && user && session) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">Already logged in, preparing redirect...</p>
+          <p className="mt-4 text-gray-600">Login successful, redirecting...</p>
         </div>
       </div>
     );
