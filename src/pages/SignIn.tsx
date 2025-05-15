@@ -41,6 +41,7 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectDelay, setRedirectDelay] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, user, session, loading } = useAuth();
@@ -59,13 +60,21 @@ const SignIn = () => {
 
   // Check for authenticated session and redirect if found
   useEffect(() => {
-    console.log("Auth state:", { loading, user, session, isProcessing });
+    console.log("SignIn auth state:", { loading, user, session, isProcessing, redirectDelay, from });
     
-    if (!loading && user && session && !isProcessing) {
-      console.log("User is authenticated, redirecting to:", from);
-      navigate(from, { replace: true });
+    if (!loading && user && session && !isProcessing && !redirectDelay) {
+      console.log("User is authenticated, setting redirect delay...");
+      setRedirectDelay(true);
+      
+      // Short delay to prevent redirect loops
+      const timer = setTimeout(() => {
+        console.log("Redirecting to:", from);
+        navigate(from, { replace: true });
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
-  }, [user, session, loading, navigate, from, isProcessing]);
+  }, [user, session, loading, navigate, from, isProcessing, redirectDelay]);
 
   const onSubmit = async (values: LoginFormValues) => {
     if (isProcessing) return;
@@ -84,6 +93,7 @@ const SignIn = () => {
           description: "Welcome back to FOBCA Bookkeeper!"
         });
         console.log("Login successful, will redirect to:", from);
+        // Don't navigate here - let the useEffect handle it to avoid race conditions
       } else {
         setLoginError(error || "Invalid email or password. Please try again.");
         toast({
@@ -111,25 +121,27 @@ const SignIn = () => {
     form.setValue("password", "admin123456");
   };
 
-  // If still loading auth state, show a simple loading indicator
-  if (loading) {
+  // If still loading auth state or redirecting, show a loading indicator
+  if (loading || (user && session && redirectDelay)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">
+            {loading ? "Checking authentication..." : "Login successful, redirecting..."}
+          </p>
         </div>
       </div>
     );
   }
 
-  // If already authenticated and not processing, don't render the form
-  if (!loading && user && session && !isProcessing) {
+  // If already authenticated but not yet redirecting, show a loading indicator
+  if (!loading && user && session && !redirectDelay) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">Already logged in, redirecting...</p>
+          <p className="mt-4 text-gray-600">Already logged in, preparing redirect...</p>
         </div>
       </div>
     );

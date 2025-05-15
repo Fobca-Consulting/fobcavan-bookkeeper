@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     console.log("Setting up auth state listener");
@@ -42,14 +43,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       (event, currentSession) => {
         console.log("Auth state change event:", event);
         
-        // Only synchronous state updates here
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing user and session state");
+          setUser(null);
+          setSession(null);
+        } else {
+          console.log("Auth state changed, updating user and session", currentSession?.user?.email);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+        }
 
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && currentSession?.user) {
           // Update user's last active timestamp
           setTimeout(() => {
-            updateLastActive();
+            updateLastActive(currentSession.user.id);
           }, 0);
         }
       }
@@ -61,17 +68,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("Checking for existing session");
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        console.log("Initial session check:", currentSession ? "Session found" : "No session");
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        console.log("Initial session check:", currentSession ? `Session found for ${currentSession.user.email}` : "No session");
         
         if (currentSession?.user) {
-          updateLastActive();
+          setSession(currentSession);
+          setUser(currentSession.user);
+          updateLastActive(currentSession.user.id);
+        } else {
+          // Explicitly set null to ensure state is consistent
+          setSession(null);
+          setUser(null);
         }
       } catch (err) {
         console.error("Error checking session:", err);
       } finally {
         setLoading(false);
+        setInitialized(true);
       }
     };
 
@@ -83,15 +95,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const updateLastActive = async () => {
-    if (!user) return;
-
+  const updateLastActive = async (userId: string) => {
     try {
       const timestamp = new Date().toISOString();
       await supabase
         .from('profiles')
         .update({ last_active: timestamp })
-        .eq('id', user.id);
+        .eq('id', userId);
     } catch (error) {
       console.error('Error updating last active timestamp:', error);
     }
@@ -111,6 +121,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log("SignIn successful:", data.user?.email);
+      
+      // We don't need to set user/session here as the onAuthStateChange event will handle it
       return { success: true };
     } catch (error: any) {
       console.error("Unexpected signIn error:", error);
@@ -121,9 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     console.log("Signing out");
     await supabase.auth.signOut();
-    // Clear state explicitly to ensure consistent behavior
-    setUser(null);
-    setSession(null);
+    // Don't need to clear state here as onAuthStateChange will handle it
   };
 
   const forgotPassword = async (email: string) => {
