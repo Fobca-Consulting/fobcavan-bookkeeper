@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -33,14 +32,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authChangeProcessed, setAuthChangeProcessed] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event, currentSession) => {
         // Only synchronous state updates here
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (currentSession !== session) {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          setAuthChangeProcessed(true);
+        }
 
         if (event === 'SIGNED_IN') {
           // Update user's last active timestamp
@@ -52,12 +55,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (currentSession !== session) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
       setLoading(false);
+      setAuthChangeProcessed(true);
 
-      if (session?.user) {
+      if (currentSession?.user) {
         updateLastActive();
       }
     });
@@ -98,6 +104,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear state explicitly to ensure consistent behavior
+    setUser(null);
+    setSession(null);
   };
 
   const forgotPassword = async (email: string) => {

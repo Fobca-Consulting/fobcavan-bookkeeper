@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -39,15 +40,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
-  const { signIn, session } = useAuth();
-
-  // Check for authenticated session and redirect if found
-  useEffect(() => {
-    if (session) {
-      navigate("/fobca");
-    }
-  }, [session, navigate]);
+  const location = useLocation();
+  const { signIn, session, loading } = useAuth();
 
   // Initialize form
   const form = useForm<LoginFormValues>({
@@ -58,7 +54,21 @@ const SignIn = () => {
     }
   });
 
+  // Check for authenticated session and redirect if found
+  useEffect(() => {
+    if (!loading && session && !isRedirecting) {
+      setIsRedirecting(true);
+      // Prevent immediate redirect to avoid loops
+      const timer = setTimeout(() => {
+        navigate("/fobca");
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [session, loading, navigate, isRedirecting]);
+
   const onSubmit = async (values: LoginFormValues) => {
+    if (isRedirecting) return;
+    
     setLoginError(null);
     const { email, password } = values;
     
@@ -67,15 +77,19 @@ const SignIn = () => {
     if (success) {
       toast({
         title: "Login successful",
-        description: "Welcome back to FOBCA Bookkeeper!",
+        description: "Welcome back to FOBCA Bookkeeper!"
       });
-      navigate("/fobca");
+      setIsRedirecting(true);
+      // Use a short delay to allow state to update properly
+      setTimeout(() => {
+        navigate("/fobca");
+      }, 100);
     } else {
       setLoginError(error || "Invalid email or password. Please try again.");
       toast({
         title: "Login failed",
         description: error || "Please check your credentials and try again",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -85,6 +99,11 @@ const SignIn = () => {
     form.setValue("email", "admin@fobca.com");
     form.setValue("password", "admin123456");
   };
+
+  // If already authenticated and not on the redirect path, prevent rendering the login form
+  if (!loading && session && location.pathname === "/signin") {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
@@ -154,8 +173,8 @@ const SignIn = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                <LogIn className="mr-2 h-4 w-4" /> Sign In
+              <Button type="submit" className="w-full" disabled={isRedirecting}>
+                <LogIn className="mr-2 h-4 w-4" /> {isRedirecting ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
           </Form>
