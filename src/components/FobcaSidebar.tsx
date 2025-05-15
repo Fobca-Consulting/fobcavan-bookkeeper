@@ -38,12 +38,18 @@ const FobcaSidebar = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log("Starting sign out process from FobcaSidebar");
+      // First navigate to prevent race conditions with auth state
+      navigate("/signin", { replace: true });
+      
+      // Then perform the sign out
       await signOut();
+      
       toast({
         title: "Signed out",
         description: "You have been successfully signed out",
       });
-      navigate("/signin");
+      
     } catch (error) {
       console.error("Sign out error:", error);
       toast({

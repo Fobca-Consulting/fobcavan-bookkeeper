@@ -138,7 +138,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       
       // Then call Supabase signOut to clear tokens and session
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({
+        scope: 'global' // Make sure to clear all sessions across devices
+      });
       
       if (error) {
         console.error("Error during sign out:", error.message);
@@ -153,9 +155,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Force clear localStorage to ensure all tokens are removed
       if (typeof window !== 'undefined') {
-        // Only focus on auth-related items
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('supabase.auth.refreshToken');
+        // Clear all Supabase related items
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('supabase.auth.')) {
+            localStorage.removeItem(key);
+          }
+        });
       }
       
     } catch (error: any) {
