@@ -40,10 +40,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, session, loading } = useAuth();
+  const { signIn, user, session, loading } = useAuth();
+
+  // Get the intended destination from location state or default to /fobca
+  const from = location.state?.from || "/fobca";
 
   // Initialize form
   const form = useForm<LoginFormValues>({
@@ -56,41 +59,49 @@ const SignIn = () => {
 
   // Check for authenticated session and redirect if found
   useEffect(() => {
-    if (!loading && session && !isRedirecting) {
-      setIsRedirecting(true);
-      // Prevent immediate redirect to avoid loops
-      const timer = setTimeout(() => {
-        navigate("/fobca");
-      }, 100);
-      return () => clearTimeout(timer);
+    console.log("Auth state:", { loading, user, session, isProcessing });
+    
+    if (!loading && user && session && !isProcessing) {
+      console.log("User is authenticated, redirecting to:", from);
+      navigate(from, { replace: true });
     }
-  }, [session, loading, navigate, isRedirecting]);
+  }, [user, session, loading, navigate, from, isProcessing]);
 
   const onSubmit = async (values: LoginFormValues) => {
-    if (isRedirecting) return;
+    if (isProcessing) return;
     
+    setIsProcessing(true);
     setLoginError(null);
     const { email, password } = values;
     
-    const { success, error } = await signIn(email, password);
-    
-    if (success) {
+    try {
+      console.log("Attempting signin...");
+      const { success, error } = await signIn(email, password);
+      
+      if (success) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back to FOBCA Bookkeeper!"
+        });
+        console.log("Login successful, will redirect to:", from);
+      } else {
+        setLoginError(error || "Invalid email or password. Please try again.");
+        toast({
+          title: "Login failed",
+          description: error || "Please check your credentials and try again",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+      }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setLoginError(err.message || "An unexpected error occurred");
       toast({
-        title: "Login successful",
-        description: "Welcome back to FOBCA Bookkeeper!"
-      });
-      setIsRedirecting(true);
-      // Use a short delay to allow state to update properly
-      setTimeout(() => {
-        navigate("/fobca");
-      }, 100);
-    } else {
-      setLoginError(error || "Invalid email or password. Please try again.");
-      toast({
-        title: "Login failed",
-        description: error || "Please check your credentials and try again",
+        title: "Login error",
+        description: err.message || "An unexpected error occurred",
         variant: "destructive"
       });
+      setIsProcessing(false);
     }
   };
   
@@ -100,9 +111,28 @@ const SignIn = () => {
     form.setValue("password", "admin123456");
   };
 
-  // If already authenticated and not on the redirect path, prevent rendering the login form
-  if (!loading && session && location.pathname === "/signin") {
-    return null;
+  // If still loading auth state, show a simple loading indicator
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If already authenticated and not processing, don't render the form
+  if (!loading && user && session && !isProcessing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Already logged in, redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -173,8 +203,8 @@ const SignIn = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isRedirecting}>
-                <LogIn className="mr-2 h-4 w-4" /> {isRedirecting ? 'Signing In...' : 'Sign In'}
+              <Button type="submit" className="w-full" disabled={isProcessing}>
+                <LogIn className="mr-2 h-4 w-4" /> {isProcessing ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
           </Form>
