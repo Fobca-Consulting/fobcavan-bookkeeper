@@ -23,6 +23,29 @@ export const setupDefaultAdmin = async () => {
   }
 };
 
+// Force create admin user - this will delete any existing admin and create a new one
+export const forceCreateAdmin = async () => {
+  try {
+    console.log('Force creating admin user...');
+    
+    const { data, error } = await supabase.functions.invoke('create-default-admin', {
+      method: 'POST',
+      body: { force: true }, // Signal to force create
+    });
+    
+    if (error) {
+      console.error('Error force creating admin:', error);
+      return false;
+    }
+    
+    console.log('Force admin creation response:', data);
+    return true;
+  } catch (e) {
+    console.error('Exception during force admin creation:', e);
+    return false;
+  }
+};
+
 // Force setup function for troubleshooting
 export const forceSetupAdmin = async () => {
   try {

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,13 +36,18 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    // Call the setupDefaultAdmin function when the app starts
-    setupDefaultAdmin()
-      .then(success => {
-        if (success) {
-          console.log('Default admin setup completed');
-        }
-      });
+    // Force create the admin user to ensure it exists with correct credentials
+    const createAdmin = async () => {
+      const { forceCreateAdmin } = await import('./utils/setupAdmin');
+      const success = await forceCreateAdmin();
+      if (success) {
+        console.log('Admin user created/updated successfully');
+      } else {
+        console.log('Failed to create/update admin user');
+      }
+    };
+    
+    createAdmin();
   }, []);
 
   return (
