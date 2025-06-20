@@ -26,14 +26,14 @@ const handler = async (_req: Request): Promise<Response> => {
     // Only create default admin if no admin users exist
     if (!existingAdmins || existingAdmins.length === 0) {
       const email = "admin@fobca.com";
-      const password = "admin123456"; // More secure default password
+      const password = "admin123456";
       const fullName = "Admin User";
       
-      // Create the admin user
+      // Create the admin user with email already confirmed
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        email_confirm: true,
+        email_confirm: true, // This bypasses email confirmation
         user_metadata: {
           full_name: fullName,
           role: 'admin'
@@ -41,6 +41,22 @@ const handler = async (_req: Request): Promise<Response> => {
       });
       
       if (error) throw error;
+      
+      // Also update the profiles table directly to ensure the role is set
+      if (data.user) {
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            full_name: fullName,
+            role: 'admin',
+            active: true
+          });
+        
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        }
+      }
       
       console.log("Default admin user created successfully:", data);
       
