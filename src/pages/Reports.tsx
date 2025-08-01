@@ -29,6 +29,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { FinancialRatios } from "@/components/reports/FinancialRatios";
+import { AuditTrail } from "@/components/reports/AuditTrail";
+import { FixedAssetRegister } from "@/components/reports/FixedAssetRegister";
 
 // Format currency
 const formatCurrency = (amount: number) => {
@@ -58,8 +60,8 @@ const incomeStatementData = {
   ]
 };
 
-// Balance Sheet Data
-const balanceSheetData = {
+// Statement of Financial Position Data
+const financialPositionData = {
   assets: [
     { name: "Cash", amount: 8500 },
     { name: "Bank Account", amount: 45600 },
@@ -81,20 +83,20 @@ const balanceSheetData = {
   ]
 };
 
-// Accounts Receivable Data
+// Accounts Receivable Data with Days Outstanding
 const accountsReceivableData = [
-  { customer: "ABC Company", invoice: "INV-1001", date: "2023-04-15", dueDate: "2023-05-15", amount: 2500, status: "overdue" },
-  { customer: "XYZ Corporation", invoice: "INV-1002", date: "2023-04-22", dueDate: "2023-05-22", amount: 3800, status: "current" },
-  { customer: "Smith Consulting", invoice: "INV-1003", date: "2023-04-30", dueDate: "2023-05-30", amount: 1750, status: "current" },
-  { customer: "Johnson LLC", invoice: "INV-1004", date: "2023-05-05", dueDate: "2023-06-05", amount: 4400, status: "current" },
+  { customer: "ABC Company", invoice: "INV-1001", date: "2023-04-15", dueDate: "2023-05-15", amount: 2500, status: "overdue", daysOutstanding: 45 },
+  { customer: "XYZ Corporation", invoice: "INV-1002", date: "2023-04-22", dueDate: "2023-05-22", amount: 3800, status: "current", daysOutstanding: 23 },
+  { customer: "Smith Consulting", invoice: "INV-1003", date: "2023-04-30", dueDate: "2023-05-30", amount: 1750, status: "current", daysOutstanding: 15 },
+  { customer: "Johnson LLC", invoice: "INV-1004", date: "2023-05-05", dueDate: "2023-06-05", amount: 4400, status: "current", daysOutstanding: 10 },
 ];
 
-// Accounts Payable Data
+// Accounts Payable Data with Days Outstanding
 const accountsPayableData = [
-  { vendor: "Office Supplies Inc", invoice: "V-456", date: "2023-04-10", dueDate: "2023-05-10", amount: 1200, status: "overdue" },
-  { vendor: "Tech Solutions", invoice: "V-789", date: "2023-04-20", dueDate: "2023-05-20", amount: 3500, status: "current" },
-  { vendor: "Utility Services", invoice: "V-123", date: "2023-04-25", dueDate: "2023-05-25", amount: 850, status: "current" },
-  { vendor: "Marketing Agency", invoice: "V-321", date: "2023-05-01", dueDate: "2023-06-01", amount: 2650, status: "current" },
+  { vendor: "Office Supplies Inc", invoice: "V-456", date: "2023-04-10", dueDate: "2023-05-10", amount: 1200, status: "overdue", daysOutstanding: 35 },
+  { vendor: "Tech Solutions", invoice: "V-789", date: "2023-04-20", dueDate: "2023-05-20", amount: 3500, status: "current", daysOutstanding: 25 },
+  { vendor: "Utility Services", invoice: "V-123", date: "2023-04-25", dueDate: "2023-05-25", amount: 850, status: "current", daysOutstanding: 20 },
+  { vendor: "Marketing Agency", invoice: "V-321", date: "2023-05-01", dueDate: "2023-06-01", amount: 2650, status: "current", daysOutstanding: 14 },
 ];
 
 // Cash Flow Data
@@ -164,11 +166,13 @@ const Reports = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="income">Income Statement</TabsTrigger>
-          <TabsTrigger value="balance">Balance Sheet</TabsTrigger>
+          <TabsTrigger value="balance">Statement of Financial Position</TabsTrigger>
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
           <TabsTrigger value="ar">Accounts Receivable</TabsTrigger>
           <TabsTrigger value="ap">Accounts Payable</TabsTrigger>
           <TabsTrigger value="ratios">Financial Ratios</TabsTrigger>
+          <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+          <TabsTrigger value="assets">Fixed Asset Register</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
@@ -251,12 +255,12 @@ const Reports = () => {
           </Card>
         </TabsContent>
 
-        {/* Balance Sheet Report */}
+        {/* Statement of Financial Position Report */}
         <TabsContent value="balance">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Balance Sheet</CardTitle>
+                <CardTitle>Statement of Financial Position</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">As of May 15, 2023</p>
               </div>
               <Button variant="outline" size="sm">
@@ -271,7 +275,7 @@ const Reports = () => {
                   <h3 className="font-semibold text-lg mb-2">Assets</h3>
                   <Table>
                     <TableBody>
-                      {balanceSheetData.assets.map((item, index) => (
+                      {financialPositionData.assets.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.name}</TableCell>
                           <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
@@ -280,7 +284,7 @@ const Reports = () => {
                       <TableRow className="bg-muted/50">
                         <TableCell className="font-bold">Total Assets</TableCell>
                         <TableCell className="text-right font-bold">
-                          {formatCurrency(balanceSheetData.assets.reduce((sum, item) => sum + item.amount, 0))}
+                          {formatCurrency(financialPositionData.assets.reduce((sum, item) => sum + item.amount, 0))}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -292,7 +296,7 @@ const Reports = () => {
                   <h3 className="font-semibold text-lg mb-2">Liabilities</h3>
                   <Table>
                     <TableBody>
-                      {balanceSheetData.liabilities.map((item, index) => (
+                      {financialPositionData.liabilities.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.name}</TableCell>
                           <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
@@ -301,7 +305,7 @@ const Reports = () => {
                       <TableRow className="bg-muted/50">
                         <TableCell className="font-bold">Total Liabilities</TableCell>
                         <TableCell className="text-right font-bold">
-                          {formatCurrency(balanceSheetData.liabilities.reduce((sum, item) => sum + item.amount, 0))}
+                          {formatCurrency(financialPositionData.liabilities.reduce((sum, item) => sum + item.amount, 0))}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -313,7 +317,7 @@ const Reports = () => {
                   <h3 className="font-semibold text-lg mb-2">Equity</h3>
                   <Table>
                     <TableBody>
-                      {balanceSheetData.equity.map((item, index) => (
+                      {financialPositionData.equity.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.name}</TableCell>
                           <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
@@ -322,7 +326,7 @@ const Reports = () => {
                       <TableRow className="bg-muted/50">
                         <TableCell className="font-bold">Total Equity</TableCell>
                         <TableCell className="text-right font-bold">
-                          {formatCurrency(balanceSheetData.equity.reduce((sum, item) => sum + item.amount, 0))}
+                          {formatCurrency(financialPositionData.equity.reduce((sum, item) => sum + item.amount, 0))}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -337,8 +341,8 @@ const Reports = () => {
                         <TableCell className="font-bold text-lg">Total Liabilities and Equity</TableCell>
                         <TableCell className="text-right font-bold text-lg">
                           {formatCurrency(
-                            balanceSheetData.liabilities.reduce((sum, item) => sum + item.amount, 0) +
-                            balanceSheetData.equity.reduce((sum, item) => sum + item.amount, 0)
+                            financialPositionData.liabilities.reduce((sum, item) => sum + item.amount, 0) +
+                            financialPositionData.equity.reduce((sum, item) => sum + item.amount, 0)
                           )}
                         </TableCell>
                       </TableRow>
@@ -472,6 +476,7 @@ const Reports = () => {
                     <TableHead>Date</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Days Outstanding</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -483,6 +488,7 @@ const Reports = () => {
                       <TableCell>{item.date}</TableCell>
                       <TableCell>{item.dueDate}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+                      <TableCell className="text-center">{item.daysOutstanding} days</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           item.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -497,6 +503,7 @@ const Reports = () => {
                     <TableCell className="text-right font-bold">
                       {formatCurrency(accountsReceivableData.reduce((sum, item) => sum + item.amount, 0))}
                     </TableCell>
+                    <TableCell></TableCell>
                     <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
@@ -527,6 +534,7 @@ const Reports = () => {
                     <TableHead>Date</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Days Outstanding</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -538,6 +546,7 @@ const Reports = () => {
                       <TableCell>{item.date}</TableCell>
                       <TableCell>{item.dueDate}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+                      <TableCell className="text-center">{item.daysOutstanding} days</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           item.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -553,6 +562,7 @@ const Reports = () => {
                       {formatCurrency(accountsPayableData.reduce((sum, item) => sum + item.amount, 0))}
                     </TableCell>
                     <TableCell></TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -563,6 +573,16 @@ const Reports = () => {
         {/* Financial Ratios Report */}
         <TabsContent value="ratios">
           <FinancialRatios />
+        </TabsContent>
+
+        {/* Audit Trail Report */}
+        <TabsContent value="audit">
+          <AuditTrail />
+        </TabsContent>
+
+        {/* Fixed Asset Register Report */}
+        <TabsContent value="assets">
+          <FixedAssetRegister />
         </TabsContent>
 
         {/* Placeholder tabs */}
