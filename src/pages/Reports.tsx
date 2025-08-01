@@ -28,6 +28,7 @@ import {
   Share2,
   ChevronRight,
 } from "lucide-react";
+import { FinancialRatios } from "@/components/reports/FinancialRatios";
 
 // Format currency
 const formatCurrency = (amount: number) => {
@@ -167,6 +168,7 @@ const Reports = () => {
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
           <TabsTrigger value="ar">Accounts Receivable</TabsTrigger>
           <TabsTrigger value="ap">Accounts Payable</TabsTrigger>
+          <TabsTrigger value="ratios">Financial Ratios</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
@@ -556,6 +558,11 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Financial Ratios Report */}
+        <TabsContent value="ratios">
+          <FinancialRatios />
         </TabsContent>
 
         {/* Placeholder tabs */}
