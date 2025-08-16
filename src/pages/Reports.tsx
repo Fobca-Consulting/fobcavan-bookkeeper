@@ -31,6 +31,10 @@ import {
 import { FinancialRatios } from "@/components/reports/FinancialRatios";
 import { AuditTrail } from "@/components/reports/AuditTrail";
 import { FixedAssetRegister } from "@/components/reports/FixedAssetRegister";
+import GLPostingCallover from "@/components/reports/GLPostingCallover";
+import TrialBalance from "@/components/reports/TrialBalance";
+import GLBalances from "@/components/reports/GLBalances";
+import ComparativeAnalysis from "@/components/reports/ComparativeAnalysis";
 
 // Format currency
 const formatCurrency = (amount: number) => {
@@ -171,7 +175,10 @@ const Reports = () => {
           <TabsTrigger value="ar">Accounts Receivable</TabsTrigger>
           <TabsTrigger value="ap">Accounts Payable</TabsTrigger>
           <TabsTrigger value="ratios">Financial Ratios</TabsTrigger>
-          <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+          <TabsTrigger value="trial-balance">Trial Balance</TabsTrigger>
+          <TabsTrigger value="gl-balances">GL Balances</TabsTrigger>
+          <TabsTrigger value="gl-posting">GL Posting Callover</TabsTrigger>
+          <TabsTrigger value="comparative">Comparative Analysis</TabsTrigger>
           <TabsTrigger value="assets">Fixed Asset Register</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>

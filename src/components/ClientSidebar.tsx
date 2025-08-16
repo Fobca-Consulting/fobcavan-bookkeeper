@@ -175,6 +175,39 @@ const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
           Multi-Currency
         </NavLink>
         <NavLink
+          to={`/client/${clientId}/investments`}
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <TrendingUp className="h-4 w-4 mr-2" />
+          Investments
+        </NavLink>
+        <NavLink
+          to={`/client/${clientId}/chart-of-accounts`}
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <BookOpen className="h-4 w-4 mr-2" />
+          Chart of Accounts
+        </NavLink>
+        <NavLink
+          to={`/client/${clientId}/journal-posting`}
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Journal Posting
+        </NavLink>
+        <NavLink
           to={`/client/${clientId}/settings`}
           className={({ isActive }) =>
             `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
