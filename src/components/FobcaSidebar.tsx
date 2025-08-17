@@ -4,7 +4,8 @@ import {
   LayoutDashboard,
   LogOut,
   Users,
-  UserCog
+  UserCog,
+  Shield
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";

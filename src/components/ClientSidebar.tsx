@@ -11,7 +11,9 @@ import {
   Users,
   Globe,
   User,
-  Briefcase
+  Briefcase,
+  TrendingUp,
+  BookOpen
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
