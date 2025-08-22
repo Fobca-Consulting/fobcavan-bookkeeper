@@ -37,12 +37,14 @@ import { toast } from "@/hooks/use-toast";
 const categories = [
   { id: 1, name: "Revenue" },
   { id: 2, name: "Expense" },
-  { id: 3, name: "Investments" },
-  { id: 4, name: "Utilities" },
-  { id: 5, name: "Rent" },
-  { id: 6, name: "Salaries" },
-  { id: 7, name: "Software" },
-  { id: 8, name: "Office Supplies" },
+  { id: 3, name: "Payment" },
+  { id: 4, name: "Receipt" },
+  { id: 5, name: "Investments" },
+  { id: 6, name: "Utilities" },
+  { id: 7, name: "Rent" },
+  { id: 8, name: "Salaries" },
+  { id: 9, name: "Software" },
+  { id: 10, name: "Office Supplies" },
 ];
 
 const accounts = [
@@ -54,6 +56,14 @@ const accounts = [
   { id: 6, name: "Software" },
   { id: 7, name: "Bank Account" },
   { id: 8, name: "Cash" },
+];
+
+const bankLedgers = [
+  { id: 1, name: "Main Checking Account", accountNumber: "****1234" },
+  { id: 2, name: "Business Savings Account", accountNumber: "****5678" },
+  { id: 3, name: "Payroll Account", accountNumber: "****9012" },
+  { id: 4, name: "Reserve Account", accountNumber: "****3456" },
+  { id: 5, name: "Investment Account", accountNumber: "****7890" },
 ];
 
 // Define the schema for form validation
@@ -70,6 +80,7 @@ const transactionFormSchema = z.object({
   account: z.string({
     required_error: "Please select an account",
   }),
+  bankLedger: z.string().optional(),
   reference: z.string().min(1, {
     message: "Reference is required",
   }),
@@ -77,6 +88,15 @@ const transactionFormSchema = z.object({
     message: "Amount must be a valid non-zero number",
   }),
   details: z.string().optional(),
+}).refine((data) => {
+  // Require bank ledger for Payment and Receipt categories
+  if ((data.category === "Payment" || data.category === "Receipt") && !data.bankLedger) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Bank ledger is required for payments and receipts",
+  path: ["bankLedger"],
 });
 
 type TransactionFormValues = z.infer<typeof transactionFormSchema>;
@@ -97,7 +117,7 @@ export function TransactionForm({
   transaction,
   onSave,
   dialogTitle,
-  dialogDescription,
+  dialogDescription,   
   submitButtonText,
 }: TransactionFormProps) {
   const [images, setImages] = useState<File[]>([]);
@@ -111,6 +131,7 @@ export function TransactionForm({
           description: transaction.description,
           category: transaction.category,
           account: transaction.account,
+          bankLedger: transaction.bankLedger || "",
           reference: transaction.reference,
           amount: String(Math.abs(transaction.amount)),
           details: transaction.details || "",
@@ -120,11 +141,15 @@ export function TransactionForm({
           description: "",
           category: "",
           account: "",
+          bankLedger: "",
           reference: "",
           amount: "",
           details: "",
         },
   });
+
+  // Watch category to show/hide bank ledger field
+  const selectedCategory = form.watch("category");
 
   function onSubmit(data: TransactionFormValues) {
     try {
@@ -259,6 +284,42 @@ export function TransactionForm({
                 )}
               />
             </div>
+
+            {/* Bank Ledger Field - Only show for Payment and Receipt */}
+            {(selectedCategory === "Payment" || selectedCategory === "Receipt") && (
+              <FormField
+                control={form.control}
+                name="bankLedger"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bank Ledger *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select bank ledger" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {bankLedgers.map((ledger) => (
+                          <SelectItem key={ledger.id} value={ledger.name}>
+                            <div className="flex flex-col">
+                              <span>{ledger.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {ledger.accountNumber}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
