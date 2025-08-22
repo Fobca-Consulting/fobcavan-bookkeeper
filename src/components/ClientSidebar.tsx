@@ -12,7 +12,8 @@ import {
   Globe,
   User,
   Briefcase,
-  TrendingUp
+  TrendingUp,
+  Package
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -196,6 +197,17 @@ const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
         >
           <FileText className="h-4 w-4 mr-2" />
           Journal Posting
+        </NavLink>
+        <NavLink
+          to={`/client/${clientId}/inventory`}
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Package className="h-4 w-4 mr-2" />
+          Inventory
         </NavLink>
         <NavLink
           to={`/client/${clientId}/settings`}

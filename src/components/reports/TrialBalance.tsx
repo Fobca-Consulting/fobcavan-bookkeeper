@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, Download, FileSpreadsheet } from "lucide-react";
+import { Calendar, Download, FileText } from "lucide-react";
+import { downloadPDF, downloadExcel, formatCurrency } from "@/utils/downloadUtils";
 
 interface TrialBalanceEntry {
   glCode: string;
@@ -34,24 +35,31 @@ const mockTrialBalance: TrialBalanceEntry[] = [
 const TrialBalance = () => {
   const [period, setPeriod] = useState("current-month");
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const filteredAccounts = mockTrialBalance;
 
   const totalDebits = mockTrialBalance.reduce((sum, entry) => sum + entry.debit, 0);
   const totalCredits = mockTrialBalance.reduce((sum, entry) => sum + entry.credit, 0);
 
-  const downloadPDF = () => {
-    // Implementation for PDF download
-    console.log("Downloading PDF...");
+  const downloadTrialBalancePDF = () => {
+    const headers = ["GL Code", "Account Name", "Debit", "Credit"];
+    const data = filteredAccounts.map(account => [
+      account.glCode,
+      account.accountName,
+      account.debit > 0 ? formatCurrency(account.debit) : "-",
+      account.credit > 0 ? formatCurrency(account.credit) : "-"
+    ]);
+    downloadPDF("Trial Balance", headers, data, "trial-balance");
   };
 
-  const downloadExcel = () => {
-    // Implementation for Excel download
-    console.log("Downloading Excel...");
+  const downloadTrialBalanceExcel = () => {
+    const headers = ["GL Code", "Account Name", "Debit Balance", "Credit Balance"];
+    const data = filteredAccounts.map(account => [
+      account.glCode,
+      account.accountName,
+      account.debit,
+      account.credit
+    ]);
+    downloadExcel("Trial Balance", headers, data, "trial-balance");
   };
 
   return (
@@ -77,12 +85,12 @@ const TrialBalance = () => {
                 <SelectItem value="year-to-date">Year to Date</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={downloadPDF}>
-              <Download className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={downloadTrialBalancePDF}>
+              <FileText className="h-4 w-4 mr-2" />
               PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={downloadExcel}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={downloadTrialBalanceExcel}>
+              <Download className="h-4 w-4 mr-2" />
               Excel
             </Button>
           </div>

@@ -13,6 +13,10 @@ import BankReconciliation from "./pages/BankReconciliation";
 import MultiCurrency from "./pages/MultiCurrency";
 import Customers from "./pages/Customers";
 import Vendors from "./pages/Vendors";
+import Investments from "./pages/Investments";
+import JournalPosting from "./pages/JournalPosting";
+import Inventory from "./pages/Inventory";
+import UserPermissions from "./pages/UserPermissions";
 import NotFound from "./pages/NotFound";
 import SignIn from "./pages/SignIn";
 import ClientOnboarding from "./pages/ClientOnboarding";
@@ -74,6 +78,7 @@ const App = () => {
                   <Route index element={<FobcaDashboard />} />
                   <Route path="client-management" element={<ClientManagement />} />
                   <Route path="user-management" element={<UserManagement />} />
+                  <Route path="user-permissions" element={<UserPermissions />} />
                 </Route>
                 
                 {/* Client Portal Routes - Protected */}
@@ -91,6 +96,9 @@ const App = () => {
                   <Route path="reports" element={<Reports />} />
                   <Route path="bank-reconciliation" element={<BankReconciliation />} />
                   <Route path="multi-currency" element={<MultiCurrency />} />
+                  <Route path="investments" element={<Investments />} />
+                  <Route path="journal-posting" element={<JournalPosting />} />
+                  <Route path="inventory" element={<Inventory />} />
                   <Route path="settings" element={<ClientSettings />} />
                   <Route path="users" element={<ClientUsers />} />
                 </Route>

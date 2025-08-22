@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Calendar, Search, Filter, User, Activity } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Calendar, Search, Filter, User, Activity, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface AuditEntry {
@@ -102,17 +102,21 @@ export const AuditTrail = () => {
   const [filterUser, setFilterUser] = useState("all");
   const [filterModule, setFilterModule] = useState("all");
 
-  // Check if user is FOBCA admin
-  const isFobcaAdmin = user?.email?.includes('@fobca.com') || false;
+  // Check if user is admin (FOBCA admin or profile role admin)
+  const isAdmin = user?.email?.includes('@fobca.com') || user?.user_metadata?.role === 'admin';
 
-  if (!isFobcaAdmin) {
+  // Restrict access to admin only
+  if (!isAdmin) {
     return (
       <Card>
-        <CardContent className="py-8">
-          <div className="text-center text-muted-foreground">
-            <Activity className="mx-auto h-12 w-12 mb-4 opacity-50" />
-            <p>Access denied. This section is only available to FOBCA administrators.</p>
+        <CardContent className="text-center py-8">
+          <div className="text-red-600 mb-4">
+            <AlertTriangle className="h-12 w-12 mx-auto" />
           </div>
+          <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+          <p className="text-muted-foreground">
+            Only administrators can access the audit trail.
+          </p>
         </CardContent>
       </Card>
     );
