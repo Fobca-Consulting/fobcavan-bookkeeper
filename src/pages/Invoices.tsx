@@ -120,34 +120,88 @@ const getStatusStyle = (status: string) => {
   }
 };
 
+// Mock customers for dropdown
+const mockCustomers = [
+  { id: 1, name: "Acme Corporation" },
+  { id: 2, name: "Globex Industries" },
+  { id: 3, name: "Stark Enterprises" },
+  { id: 4, name: "Wayne Industries" },
+];
+
+// Mock products for invoice items
+const mockProducts = [
+  { id: 1, name: "Consulting Services", price: 150.00 },
+  { id: 2, name: "Web Development", price: 75.00 },
+  { id: 3, name: "Graphic Design", price: 65.00 },
+  { id: 4, name: "Marketing Services", price: 85.00 },
+];
+
 const InvoiceForm = ({ onClose }: { onClose: () => void }) => {
+  const [items, setItems] = useState([
+    { product: "", quantity: 1, unitPrice: 0, vatRate: 7.5, whtRate: 5.0, total: 0 }
+  ]);
+
   const form = useForm({
     defaultValues: {
-      client: "",
+      customer: "",
       issueDate: "",
       dueDate: "",
-      items: "",
       notes: "",
     },
   });
 
+  const addItem = () => {
+    setItems([...items, { product: "", quantity: 1, unitPrice: 0, vatRate: 7.5, whtRate: 5.0, total: 0 }]);
+  };
+
+  const removeItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    
+    // Calculate total for the item
+    const item = updatedItems[index];
+    const subtotal = item.quantity * item.unitPrice;
+    const vat = subtotal * (item.vatRate / 100);
+    const wht = subtotal * (item.whtRate / 100);
+    updatedItems[index].total = subtotal + vat - wht;
+    
+    setItems(updatedItems);
+  };
+
   const onSubmit = (data: any) => {
-    console.log(data);
+    console.log({ ...data, items });
     onClose();
   };
+
+  const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="client"
+          name="customer"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client</FormLabel>
-              <FormControl>
-                <Input placeholder="Client name" {...field} />
-              </FormControl>
+              <FormLabel>Customer</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {mockCustomers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id.toString()}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -180,26 +234,122 @@ const InvoiceForm = ({ onClose }: { onClose: () => void }) => {
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="items"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Items</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Item description, quantity, rate..." 
-                  className="min-h-[100px]" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormDescription>
-                Add multiple items, one per line with description, quantity, and rate.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+        {/* Items Table */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <FormLabel>Invoice Items</FormLabel>
+            <Button type="button" onClick={addItem} size="sm">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
+          </div>
+          
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product/Service</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead>Unit Price</TableHead>
+                  <TableHead>VAT %</TableHead>
+                  <TableHead>WHT %</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Select 
+                        value={item.product} 
+                        onValueChange={(value) => {
+                          updateItem(index, "product", value);
+                          const product = mockProducts.find(p => p.id.toString() === value);
+                          if (product) {
+                            updateItem(index, "unitPrice", product.price);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockProducts.map((product) => (
+                            <SelectItem key={product.id} value={product.id.toString()}>
+                              {product.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        type="number" 
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(index, "unitPrice", parseFloat(e.target.value) || 0)}
+                        className="w-24"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        type="number" 
+                        step="0.1"
+                        value={item.vatRate}
+                        onChange={(e) => updateItem(index, "vatRate", parseFloat(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        type="number" 
+                        step="0.1"
+                        value={item.whtRate}
+                        onChange={(e) => updateItem(index, "whtRate", parseFloat(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(item.total)}
+                    </TableCell>
+                    <TableCell>
+                      {items.length > 1 && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => removeItem(index)}
+                        >
+                          ✕
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <div className="flex justify-end">
+            <div className="w-48 space-y-2">
+              <div className="flex justify-between font-semibold">
+                <span>Grand Total:</span>
+                <span>{formatCurrency(grandTotal)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="notes"
@@ -225,16 +375,45 @@ const InvoiceForm = ({ onClose }: { onClose: () => void }) => {
 };
 
 const ReceiptForm = ({ onClose }: { onClose: () => void }) => {
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
+
   const form = useForm({
     defaultValues: {
-      client: "",
+      customer: "",
       date: "",
       paymentMethod: "",
       amount: "",
-      reference: "",
+      invoice: "",
       notes: "",
     },
   });
+
+  // Mock invoices for selected customer
+  const getCustomerInvoices = (customerId: string) => {
+    const invoices = [
+      { id: "INV-2023-001", customer: "1", amount: 3500, status: "unpaid" },
+      { id: "INV-2023-002", customer: "2", amount: 2800, status: "unpaid" },
+      { id: "INV-2023-003", customer: "4", amount: 4200, status: "unpaid" },
+    ];
+    return invoices.filter(inv => inv.customer === customerId && inv.status === "unpaid");
+  };
+
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    form.setValue("customer", customerId);
+    const invoices = getCustomerInvoices(customerId);
+    setCustomerInvoices(invoices);
+    form.setValue("invoice", "");
+    form.setValue("amount", "");
+  };
+
+  const handleInvoiceChange = (invoiceId: string) => {
+    const invoice = customerInvoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+      form.setValue("amount", invoice.amount.toString());
+    }
+  };
 
   const onSubmit = (data: any) => {
     console.log(data);
@@ -246,17 +425,59 @@ const ReceiptForm = ({ onClose }: { onClose: () => void }) => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="client"
+          name="customer"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client</FormLabel>
-              <FormControl>
-                <Input placeholder="Client name" {...field} />
-              </FormControl>
+              <FormLabel>Customer</FormLabel>
+              <Select onValueChange={handleCustomerChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {mockCustomers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id.toString()}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {selectedCustomer && (
+          <FormField
+            control={form.control}
+            name="invoice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Invoice (Optional)</FormLabel>
+                <Select onValueChange={(value) => {
+                  field.onChange(value);
+                  handleInvoiceChange(value);
+                }} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select invoice to pay" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {customerInvoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        {invoice.id} - {formatCurrency(invoice.amount)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -295,34 +516,19 @@ const ReceiptForm = ({ onClose }: { onClose: () => void }) => {
             )}
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="reference"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Reference/Invoice #</FormLabel>
-                <FormControl>
-                  <Input placeholder="INV-2023-001" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="0.00" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="notes"

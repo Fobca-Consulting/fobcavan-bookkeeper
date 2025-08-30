@@ -23,8 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, Filter, PlusCircle, Search, UserPlus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Eye, Filter, PlusCircle, Search, UserPlus, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 
@@ -87,9 +87,19 @@ const customers = [
   },
 ];
 
+// Mock transaction history
+const customerTransactions = [
+  { id: 1, customerId: 1, date: "2023-05-15", description: "Invoice INV-001", amount: 2500, type: "invoice" },
+  { id: 2, customerId: 1, date: "2023-05-10", description: "Payment received", amount: -2500, type: "payment" },
+  { id: 3, customerId: 2, date: "2023-05-12", description: "Invoice INV-002", amount: 1250, type: "invoice" },
+  { id: 4, customerId: 4, date: "2023-05-20", description: "Invoice INV-003", amount: 4200, type: "invoice" },
+];
+
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   
   // Filter customers based on search query and status filter
   const filteredCustomers = customers.filter(customer => {
@@ -102,6 +112,15 @@ const Customers = () => {
     
     return matchesSearch && matchesStatus;
   });
+
+  const showCustomerHistory = (customer: any) => {
+    setSelectedCustomer(customer);
+    setShowTransactionHistory(true);
+  };
+
+  const getCustomerTransactions = (customerId: number) => {
+    return customerTransactions.filter(t => t.customerId === customerId);
+  };
   
   return (
     <div className="space-y-6">
@@ -118,116 +137,137 @@ const Customers = () => {
           <CardTitle>Customer Management</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all">
-            <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
-              <TabsList>
-                <TabsTrigger value="all">All Customers</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="inactive">Inactive</TabsTrigger>
-              </TabsList>
-              
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search customers..."
-                    className="pl-8 w-full md:w-[250px]"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <Select
-                  value={statusFilter}
-                  onValueChange={setStatusFilter}
-                >
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+          <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search customers..."
+                  className="pl-8 w-full md:w-[250px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            <TabsContent value="all">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead>Last Invoice</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span>{customer.contactName}</span>
-                          <span className="text-sm text-muted-foreground">{customer.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          customer.status === "active" ? "success" : 
-                          customer.status === "pending" ? "warning" : "secondary"
-                        }>
-                          {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(customer.balance, customer.currency)}
-                      </TableCell>
-                      <TableCell>{customer.lastInvoice}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              {filteredCustomers.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-muted-foreground mb-2">No customers found</p>
-                  <Button size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Customer
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="active">
-              {/* This will be similar to "all" but filtered for active status */}
-              <p className="py-3">Showing only active customers</p>
-            </TabsContent>
-            
-            <TabsContent value="pending">
-              {/* This will be similar to "all" but filtered for pending status */}
-              <p className="py-3">Showing only pending customers</p>
-            </TabsContent>
-            
-            <TabsContent value="inactive">
-              {/* This will be similar to "all" but filtered for inactive status */}
-              <p className="py-3">Showing only inactive customers</p>
-            </TabsContent>
-          </Tabs>
+          </div>
+          
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
+                <TableHead>Last Invoice</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell className="font-medium">{customer.name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <span>{customer.contactName}</span>
+                      <span className="text-sm text-muted-foreground">{customer.email}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      customer.status === "active" ? "success" : 
+                      customer.status === "pending" ? "warning" : "secondary"
+                    }>
+                      {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(customer.balance, customer.currency)}
+                  </TableCell>
+                  <TableCell>{customer.lastInvoice}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" title="View Details">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        title="Transaction History"
+                        onClick={() => showCustomerHistory(customer)}
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          {filteredCustomers.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-muted-foreground mb-2">No customers found</p>
+              <Button size="sm">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Customer
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Transaction History Dialog */}
+      <Dialog open={showTransactionHistory} onOpenChange={setShowTransactionHistory}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Transaction History - {selectedCustomer?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedCustomer && getCustomerTransactions(selectedCustomer.id).map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>{transaction.date}</TableCell>
+                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell>
+                      <Badge variant={transaction.type === "payment" ? "success" : "info"}>
+                        {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={`text-right ${transaction.amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {formatCurrency(Math.abs(transaction.amount), "USD")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

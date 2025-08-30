@@ -53,18 +53,26 @@ export const useUsers = () => {
   // Toggle user active status
   const toggleUserStatus = async (user: UserProfile) => {
     try {
+      const newActiveStatus = !user.active;
+      
       const { error } = await supabase
         .from("profiles")
-        .update({ active: !user.active })
+        .update({ active: newActiveStatus })
         .eq("id", user.id);
 
       if (error) throw error;
 
       toast({
         title: "Status Updated",
-        description: `${user.full_name} is now ${!user.active ? "active" : "inactive"}`,
+        description: `${user.full_name} is now ${newActiveStatus ? "active" : "inactive"}`,
       });
 
+      // Update the local state immediately for better UX
+      setUsers(prev => prev.map(u => 
+        u.id === user.id ? { ...u, active: newActiveStatus } : u
+      ));
+      
+      // Also fetch fresh data
       fetchUsers();
     } catch (error: any) {
       toast({
