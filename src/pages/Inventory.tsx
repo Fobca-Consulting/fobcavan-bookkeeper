@@ -112,7 +112,7 @@ const Inventory = () => {
       item.status
     ]);
     
-    downloadPDF("Product Inventory", "inventory-report", headers, data);
+    downloadPDF("Product Inventory", headers, data, "inventory-report");
   };
 
   const downloadInventoryExcel = () => {
@@ -127,7 +127,7 @@ const Inventory = () => {
       item.status
     ]);
     
-    downloadExcel("Product Inventory", "inventory-report", headers, data);
+    downloadExcel("Product Inventory", headers, data, "inventory-report");
   };
 
   const downloadMovementsPDF = () => {
@@ -142,7 +142,7 @@ const Inventory = () => {
       movement.notes || ""
     ]);
     
-    downloadPDF("Stock Movements", "stock-movements", headers, data);
+    downloadPDF("Stock Movements", headers, data, "stock-movements");
   };
 
   const downloadMovementsExcel = () => {
@@ -157,7 +157,7 @@ const Inventory = () => {
       movement.notes || ""
     ]);
     
-    downloadExcel("Stock Movements", "stock-movements", headers, data);
+    downloadExcel("Stock Movements", headers, data, "stock-movements");
   };
 
   return (
