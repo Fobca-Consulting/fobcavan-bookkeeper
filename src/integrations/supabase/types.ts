@@ -35,6 +35,358 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_communications: {
+        Row: {
+          communication_type: string
+          completed_date: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          id: string
+          scheduled_date: string | null
+          status: string | null
+          subject: string | null
+        }
+        Insert: {
+          communication_type: string
+          completed_date?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          scheduled_date?: string | null
+          status?: string | null
+          subject?: string | null
+        }
+        Update: {
+          communication_type?: string
+          completed_date?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          scheduled_date?: string | null
+          status?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_communications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_statements: {
+        Row: {
+          closing_balance: number | null
+          created_at: string | null
+          customer_id: string
+          from_date: string
+          id: string
+          opening_balance: number | null
+          sent_at: string | null
+          statement_date: string
+          status: string | null
+          to_date: string
+          total_charges: number | null
+          total_payments: number | null
+        }
+        Insert: {
+          closing_balance?: number | null
+          created_at?: string | null
+          customer_id: string
+          from_date: string
+          id?: string
+          opening_balance?: number | null
+          sent_at?: string | null
+          statement_date: string
+          status?: string | null
+          to_date: string
+          total_charges?: number | null
+          total_payments?: number | null
+        }
+        Update: {
+          closing_balance?: number | null
+          created_at?: string | null
+          customer_id?: string
+          from_date?: string
+          id?: string
+          opening_balance?: number | null
+          sent_at?: string | null
+          statement_date?: string
+          status?: string | null
+          to_date?: string
+          total_charges?: number | null
+          total_payments?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          credit_limit: number | null
+          current_balance: number | null
+          customer_code: string
+          customer_type: string | null
+          discount_percentage: number | null
+          email: string | null
+          id: string
+          name: string
+          payment_terms_days: number | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          status: string | null
+          tax_exempt: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          credit_limit?: number | null
+          current_balance?: number | null
+          customer_code: string
+          customer_type?: string | null
+          discount_percentage?: number | null
+          email?: string | null
+          id?: string
+          name: string
+          payment_terms_days?: number | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: string | null
+          tax_exempt?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          credit_limit?: number | null
+          current_balance?: number | null
+          customer_code?: string
+          customer_type?: string | null
+          discount_percentage?: number | null
+          email?: string | null
+          id?: string
+          name?: string
+          payment_terms_days?: number | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: string | null
+          tax_exempt?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          cost_price: number | null
+          created_at: string | null
+          description: string | null
+          expiry_tracking: boolean | null
+          id: string
+          item_code: string
+          name: string
+          reorder_level: number | null
+          reorder_quantity: number | null
+          selling_price: number | null
+          track_lots: boolean | null
+          track_serials: boolean | null
+          unit_of_measure: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string | null
+          description?: string | null
+          expiry_tracking?: boolean | null
+          id?: string
+          item_code: string
+          name: string
+          reorder_level?: number | null
+          reorder_quantity?: number | null
+          selling_price?: number | null
+          track_lots?: boolean | null
+          track_serials?: boolean | null
+          unit_of_measure?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string | null
+          description?: string | null
+          expiry_tracking?: boolean | null
+          id?: string
+          item_code?: string
+          name?: string
+          reorder_level?: number | null
+          reorder_quantity?: number | null
+          selling_price?: number | null
+          track_lots?: boolean | null
+          track_serials?: boolean | null
+          unit_of_measure?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory_locations: {
+        Row: {
+          active: boolean | null
+          address: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          address?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          address?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory_serials: {
+        Row: {
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          item_id: string
+          location_id: string
+          lot_number: string | null
+          quantity: number | null
+          serial_number: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          item_id: string
+          location_id: string
+          lot_number?: string | null
+          quantity?: number | null
+          serial_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          item_id?: string
+          location_id?: string
+          lot_number?: string | null
+          quantity?: number | null
+          serial_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_serials_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_serials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_stock: {
+        Row: {
+          id: string
+          item_id: string
+          last_updated: string | null
+          location_id: string
+          quantity_available: number | null
+          quantity_on_hand: number | null
+          quantity_reserved: number | null
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          last_updated?: string | null
+          location_id: string
+          quantity_available?: number | null
+          quantity_on_hand?: number | null
+          quantity_reserved?: number | null
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          last_updated?: string | null
+          location_id?: string
+          quantity_available?: number | null
+          quantity_on_hand?: number | null
+          quantity_reserved?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean | null
@@ -62,6 +414,170 @@ export type Database = {
           last_active?: string | null
           role?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      purchase_order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string
+          po_id: string
+          quantity_ordered: number
+          quantity_received: number | null
+          total_cost: number | null
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id: string
+          po_id: string
+          quantity_ordered: number
+          quantity_received?: number | null
+          total_cost?: number | null
+          unit_cost: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          po_id?: string
+          quantity_ordered?: number
+          quantity_received?: number | null
+          total_cost?: number | null
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expected_delivery_date: string | null
+          id: string
+          location_id: string
+          notes: string | null
+          order_date: string
+          po_number: string
+          status: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          total_amount: number | null
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          order_date?: string
+          po_number: string
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          order_date?: string
+          po_number?: string
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          payment_terms_days: number | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          status: string | null
+          tax_id: string | null
+          updated_at: string | null
+          vendor_code: string
+          vendor_type: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          payment_terms_days?: number | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+          vendor_code: string
+          vendor_type?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          payment_terms_days?: number | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+          vendor_code?: string
+          vendor_type?: string | null
         }
         Relationships: []
       }
