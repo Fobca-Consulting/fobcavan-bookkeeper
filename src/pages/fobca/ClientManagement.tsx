@@ -1,241 +1,172 @@
-
-import React, { useState } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { 
-  Eye, 
-  MoreVertical, 
-  UserPlus, 
-  FileText, 
-  Upload,
-  UserCheck,
-  Clock,
-  Search,
-  Download,
-  Mail,
-  MoreHorizontal,
-  Link as LinkIcon,
-  Copy,
-  User,
-  Building,
-  ExternalLink,
-  Loader2
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  UserPlus, 
+  Users, 
+  Activity, 
+  FileText, 
+  Download, 
+  Eye, 
+  Settings, 
+  Search,
+  Copy,
+  ExternalLink,
+  UserCheck,
+  UserX,
+  Calendar,
+  Building2,
+  Mail,
+  Phone,
+  MapPin
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
-// Interface for client data
+// Client and Document Interfaces
 interface Client {
-  id: number;
+  id: number | string;
   name: string;
   contact: string;
   email: string;
-  phone: string;
   portalAccess: boolean;
   lastActive: string;
   clientType: "direct" | "indirect";
-  portalUrl?: string;
-  documents: {
-    id: number;
-    name: string;
-    type: string;
-    date: string;
-    size: string;
-  }[];
+  portalUrl: string;
+  documents: Document[];
 }
 
-// Mock client data
-const clients: Client[] = [
-  {
-    id: 1,
-    name: "Acme Corporation",
-    contact: "John Doe",
-    email: "john@acmecorp.com",
-    phone: "555-1234",
-    portalAccess: true,
-    lastActive: "2023-05-15",
-    clientType: "direct",
-    documents: [
-      { id: 1, name: "Invoice #1001", type: "invoice", date: "2023-04-15", size: "245KB" },
-      { id: 2, name: "Contract 2023", type: "contract", date: "2023-01-10", size: "1.2MB" },
-    ]
-  },
-  {
-    id: 2,
-    name: "Globex Inc",
-    contact: "Jane Smith",
-    email: "jane@globex.com",
-    phone: "555-5678",
-    portalAccess: true,
-    lastActive: "2023-05-10",
-    clientType: "direct",
-    documents: [
-      { id: 3, name: "Invoice #985", type: "invoice", date: "2023-05-02", size: "230KB" },
-      { id: 4, name: "Tax Report", type: "report", date: "2023-04-15", size: "540KB" },
-    ]
-  },
-  {
-    id: 3,
-    name: "Stark Industries",
-    contact: "Tony Stark",
-    email: "tony@stark.com",
-    phone: "555-4321",
-    portalAccess: false,
-    lastActive: "Never",
-    clientType: "direct",
-    documents: []
-  },
-  {
-    id: 4,
-    name: "Wayne Enterprises",
-    contact: "Bruce Wayne",
-    email: "bruce@wayne.com",
-    phone: "555-8765",
-    portalAccess: true,
-    lastActive: "2023-05-12",
-    clientType: "indirect",
-    portalUrl: "https://fobca.app/business/wayne-enterprises",
-    documents: [
-      { id: 5, name: "Financial Statement", type: "report", date: "2023-05-01", size: "890KB" },
-    ]
-  },
-  {
-    id: 5,
-    name: "Umbrella Corp",
-    contact: "Albert Wesker",
-    email: "wesker@umbrella.com",
-    phone: "555-7890",
-    portalAccess: false,
-    lastActive: "Never",
-    clientType: "indirect",
-    portalUrl: "https://fobca.app/business/umbrella-corp",
-    documents: []
-  }
-];
+interface Document {
+  id: number;
+  name: string;
+  type: string;
+  date: string;
+  size: string;
+}
 
-// Shared activities
-const sharedActivities = [
-  { id: 1, client: "Acme Corporation", document: "Invoice #1001", date: "2023-05-15", action: "Viewed" },
-  { id: 2, client: "Globex Inc", document: "Tax Report", date: "2023-05-12", action: "Downloaded" },
-  { id: 3, client: "Wayne Enterprises", document: "Financial Statement", date: "2023-05-10", action: "Viewed" },
-  { id: 4, client: "Acme Corporation", document: "Contract 2023", date: "2023-05-08", action: "Downloaded" },
-  { id: 5, client: "Globex Inc", document: "Invoice #985", date: "2023-05-05", action: "Viewed" }
-];
-
-// Form schema for invite client
+// Form validation schema
 const inviteClientSchema = z.object({
-  clientType: z.enum(['direct', 'indirect'], {
+  businessName: z.string().min(1, "Business name is required"),
+  contactName: z.string().min(1, "Contact name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  clientType: z.enum(["direct", "indirect"], {
     required_error: "Please select a client type",
-  }),
-  businessName: z.string().min(2, {
-    message: "Business name must be at least 2 characters.",
-  }),
-  contactName: z.string().min(2, {
-    message: "Contact name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
   }),
   message: z.string().optional(),
 });
 
 type InviteClientFormValues = z.infer<typeof inviteClientSchema>;
 
-// Utility function to generate password
-const generatePassword = (length: number = 12): string => {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
+function generatePassword(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+  let result = "";
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return password;
-};
+  return result;
+}
 
 const ClientManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [currentTab, setCurrentTab] = useState("all");
   const [isInviting, setIsInviting] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
 
-  // Initialize form
+  // Real clients data from database
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching clients:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load clients",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Transform database data to match Client interface
+      const transformedClients: Client[] = data.map(client => ({
+        id: client.id,
+        name: client.business_name,
+        clientType: client.client_type as "direct" | "indirect",
+        contact: client.contact_name,
+        email: client.email,
+        portalAccess: client.portal_access,
+        lastActive: client.last_active ? new Date(client.last_active).toISOString().split('T')[0] : "Never",
+        portalUrl: `/client/${client.business_name.toLowerCase().replace(/\s+/g, '-')}`,
+        documents: [] // TODO: Implement documents relationship
+      }));
+
+      setClients(transformedClients);
+    } catch (error) {
+      console.error('Error in fetchClients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use useEffect to load clients on component mount
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const sharedActivities = [
+    { id: 1, type: "document", title: "Q4 Financial Report shared with Acme Corporation", time: "2 hours ago", client: "Acme Corporation" },
+    { id: 2, type: "login", title: "John Smith accessed portal", time: "5 hours ago", client: "Acme Corporation" },
+    { id: 3, type: "document", title: "Tax documents uploaded for TechStart Solutions", time: "1 day ago", client: "TechStart Solutions" },
+  ];
+
+  // Form setup
   const form = useForm<InviteClientFormValues>({
     resolver: zodResolver(inviteClientSchema),
     defaultValues: {
-      clientType: 'direct',
       businessName: "",
       contactName: "",
       email: "",
+      phone: "",
+      address: "",
+      clientType: "direct",
       message: "",
-    }
+    },
   });
 
-  // Filter clients based on search term and current tab
-  const filteredClients = clients.filter(
-    client => {
-      const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           client.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           client.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (currentTab === "all") return matchesSearch;
-      if (currentTab === "direct") return matchesSearch && client.clientType === "direct";
-      if (currentTab === "indirect") return matchesSearch && client.clientType === "indirect";
-      return matchesSearch;
-    }
-  );
+  // Component State and Helper Functions
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTab = currentTab === "all" || 
+                      (currentTab === "direct" && client.clientType === "direct") ||
+                      (currentTab === "indirect" && client.clientType === "indirect");
+    
+    return matchesSearch && matchesTab;
+  });
 
   const handleCopyLink = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -252,14 +183,16 @@ const ClientManagement = () => {
       // Generate temporary password for the client
       const tempPassword = generatePassword();
       
-      // Call the edge function to send welcome email
-      const { data, error } = await supabase.functions.invoke('send-welcome-email', {
+      // Call the edge function to create client user
+      const { data, error } = await supabase.functions.invoke('create-client-user', {
         body: {
           email: values.email,
-          name: values.contactName,
-          tempPassword: tempPassword,
-          clientType: values.clientType,
           businessName: values.businessName,
+          contactName: values.contactName,
+          clientType: values.clientType,
+          phone: values.phone,
+          address: values.address,
+          tempPassword: tempPassword,
           message: values.message,
         }
       });
@@ -269,24 +202,21 @@ const ClientManagement = () => {
       }
 
       toast({
-        title: "Invitation sent successfully",
-        description: `Welcome email sent to ${values.email} with login credentials`,
+        title: "Client created successfully",
+        description: `${values.businessName} has been added and welcome email sent to ${values.email}`,
       });
       
       // Reset form and close dialog
       form.reset();
       setShowInviteDialog(false);
       
-      console.log("Client invited successfully:", {
-        ...values,
-        tempPassword: "***HIDDEN***", // Don't log actual password
-        emailResponse: data
-      });
+      // Refresh the clients list
+      await fetchClients();
       
     } catch (error: any) {
       console.error("Error inviting client:", error);
       toast({
-        title: "Failed to send invitation",
+        title: "Failed to create client",
         description: error.message || "Please try again later",
         variant: "destructive",
       });
@@ -296,26 +226,27 @@ const ClientManagement = () => {
   };
 
   const generateOnboardingLink = (businessName: string) => {
-    // In a real app, this would generate a unique link with a token
-    const slug = businessName.toLowerCase().replace(/\s+/g, '-');
-    return `https://fobca.app/onboarding/${slug}`;
+    return `${window.location.origin}/onboard/${businessName.toLowerCase().replace(/\s+/g, '-')}`;
   };
 
-  const navigateToClientDashboard = (clientId: number) => {
-    const clientSlug = clients.find(c => c.id === clientId)?.name.toLowerCase().replace(/\s+/g, '-') || 'client';
-    navigate(`/client/${clientSlug}`);
-    
-    toast({
-      title: "Accessing client dashboard",
-      description: `You are now viewing ${clients.find(c => c.id === clientId)?.name}'s dashboard`,
-    });
+  const navigateToClientDashboard = (clientId: number | string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      window.open(client.portalUrl, '_blank');
+    }
   };
 
+  // Component Rendering
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Client Management</h1>
-        <div className="flex space-x-2">
+    <div className="flex-1 space-y-6 p-8 pt-6">
+      <div className="flex items-center justify-between space-y-2">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Client Management</h2>
+          <p className="text-muted-foreground">
+            Manage your client relationships and portal access
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
           <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -341,37 +272,33 @@ const ClientManagement = () => {
                         <FormControl>
                           <div className="grid grid-cols-2 gap-4">
                             <div className={`border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3 ${field.value === 'direct' ? 'border-primary bg-primary/5' : ''}`}>
-                              <input 
-                                type="radio" 
-                                name="clientType" 
-                                id="direct" 
-                                value="direct" 
+                              <input
+                                type="radio"
+                                value="direct"
                                 checked={field.value === 'direct'}
                                 onChange={() => field.onChange('direct')}
-                                className="mt-1" 
+                                className="mt-1"
                               />
                               <div>
-                                <Label htmlFor="direct" className="font-medium cursor-pointer">Direct Client</Label>
-                                <p className="text-sm text-muted-foreground">
-                                  FOBCA manages their accounts with read-only access
-                                </p>
+                                <div className="font-medium">Direct Client</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Full access to portal and services
+                                </div>
                               </div>
                             </div>
                             <div className={`border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3 ${field.value === 'indirect' ? 'border-primary bg-primary/5' : ''}`}>
-                              <input 
-                                type="radio" 
-                                name="clientType" 
-                                id="indirect" 
-                                value="indirect" 
+                              <input
+                                type="radio"
+                                value="indirect"
                                 checked={field.value === 'indirect'}
                                 onChange={() => field.onChange('indirect')}
-                                className="mt-1" 
+                                className="mt-1"
                               />
                               <div>
-                                <Label htmlFor="indirect" className="font-medium cursor-pointer">Indirect Client</Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Client manages their own accounts
-                                </p>
+                                <div className="font-medium">Indirect Client</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Limited portal access through partner
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -380,7 +307,7 @@ const ClientManagement = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="businessName"
@@ -388,16 +315,13 @@ const ClientManagement = () => {
                       <FormItem>
                         <FormLabel>Business Name</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input {...field} className="pl-10" placeholder="Enter business name" />
-                          </div>
+                          <Input placeholder="Enter business name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="contactName"
@@ -405,33 +329,55 @@ const ClientManagement = () => {
                       <FormItem>
                         <FormLabel>Contact Name</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input {...field} className="pl-10" placeholder="Enter contact name" />
-                          </div>
+                          <Input placeholder="Enter contact person's name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email Address</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input {...field} type="email" className="pl-10" placeholder="Enter email address" />
-                          </div>
+                          <Input type="email" placeholder="Enter email address" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter phone number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Enter business address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="message"
@@ -439,100 +385,35 @@ const ClientManagement = () => {
                       <FormItem>
                         <FormLabel>Invitation Message (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea {...field} placeholder="Add a personal message to your invitation" />
+                          <Textarea placeholder="Add a personal message to your invitation" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <DialogFooter>
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => {
-                        form.reset();
-                        setShowInviteDialog(false);
-                      }}
+                      onClick={() => setShowInviteDialog(false)}
                       disabled={isInviting}
                     >
                       Cancel
                     </Button>
                     <Button type="submit" disabled={isInviting}>
-                      {isInviting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Send Invitation
-                        </>
-                      )}
+                      {isInviting ? "Creating..." : "Send Invitation"}
                     </Button>
                   </DialogFooter>
                 </form>
               </Form>
             </DialogContent>
           </Dialog>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Direct Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Direct Client</DialogTitle>
-                <DialogDescription>
-                  Add a new client that FOBCA will manage with optional portal access.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Business Name
-                  </Label>
-                  <Input id="name" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="contact" className="text-right">
-                    Contact Name
-                  </Label>
-                  <Input id="contact" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input id="email" type="email" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input id="phone" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="portal-access" className="text-right">
-                    Portal Access
-                  </Label>
-                  <Switch id="portal-access" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Save Client</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
-      <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
+        <TabsList>
           <TabsTrigger value="all">All Clients</TabsTrigger>
           <TabsTrigger value="direct">Direct Clients</TabsTrigger>
           <TabsTrigger value="indirect">Indirect Clients</TabsTrigger>
@@ -564,172 +445,86 @@ const ClientManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients.map(client => (
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium">{client.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={client.clientType === "direct" ? "outline" : "secondary"}>
-                          {client.clientType === "direct" ? "Direct" : "Indirect"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{client.contact}</TableCell>
-                      <TableCell>{client.email}</TableCell>
-                      <TableCell>
-                        {client.portalAccess ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <UserCheck className="w-3 h-3 mr-1" />
-                            Enabled
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                            Disabled
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {client.lastActive !== "Never" ? (
-                          <div className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1 text-muted-foreground" />
-                            {client.lastActive}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Never</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-1">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => navigateToClientDashboard(client.id)}
-                            className="flex items-center text-xs"
-                          >
-                            <ExternalLink className="mr-1 h-3 w-3" />
-                            Access
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setSelectedClient(client)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigateToClientDashboard(client.id)}>
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Access Dashboard
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Share Documents
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Mail className="mr-2 h-4 w-4" />
-                                Send Email
-                              </DropdownMenuItem>
-                              {client.clientType === "indirect" && (
-                                <DropdownMenuItem onClick={() => handleCopyLink(client.portalUrl || "")}>
-                                  <LinkIcon className="mr-2 h-4 w-4" />
-                                  Copy Portal Link
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              {client.clientType === "direct" && (
-                                <DropdownMenuItem>
-                                  <div className="flex items-center w-full">
-                                    <Switch 
-                                      id={`portal-access-${client.id}`}
-                                      checked={client.portalAccess}
-                                      className="mr-2"
-                                    />
-                                    <span>Portal Access</span>
-                                  </div>
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        Loading clients...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : filteredClients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        No clients found. Invite your first client to get started.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredClients.map(client => (
+                      <TableRow key={client.id}>
+                        <TableCell className="font-medium">{client.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={client.clientType === "direct" ? "outline" : "secondary"}>
+                            {client.clientType === "direct" ? "Direct" : "Indirect"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{client.contact}</TableCell>
+                        <TableCell>{client.email}</TableCell>
+                        <TableCell>
+                          {client.portalAccess ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <UserCheck className="w-3 h-3 mr-1" />
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-600">
+                              <UserX className="w-3 h-3 mr-1" />
+                              Inactive
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{client.lastActive}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyLink(client.portalUrl)}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedClient(client)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateToClientDashboard(client.id)}
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="direct" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search direct clients..." 
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Add Direct Client
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Direct Client</DialogTitle>
-                  <DialogDescription>
-                    Add a new client that FOBCA will manage with optional portal access.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="direct-name" className="text-right">
-                      Business Name
-                    </Label>
-                    <Input id="direct-name" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="direct-contact" className="text-right">
-                      Contact Name
-                    </Label>
-                    <Input id="direct-contact" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="direct-email" className="text-right">
-                      Email
-                    </Label>
-                    <Input id="direct-email" type="email" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="direct-phone" className="text-right">
-                      Phone
-                    </Label>
-                    <Input id="direct-phone" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="direct-portal-access" className="text-right">
-                      Portal Access
-                    </Label>
-                    <div className="col-span-3 flex items-center space-x-2">
-                      <Switch id="direct-portal-access" />
-                      <Label htmlFor="direct-portal-access" className="text-sm text-muted-foreground">
-                        Grant read-only access to client portal
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit">Save Client</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+          <div className="flex items-center space-x-2">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search direct clients..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
           </div>
           
           <Card>
@@ -746,70 +541,75 @@ const ClientManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients
-                    .filter(client => client.clientType === "direct")
-                    .map(client => (
+                  {filteredClients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        No direct clients found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredClients.map(client => (
                       <TableRow key={client.id}>
                         <TableCell className="font-medium">{client.name}</TableCell>
                         <TableCell>{client.contact}</TableCell>
                         <TableCell>{client.email}</TableCell>
                         <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Switch 
-                              id={`direct-access-${client.id}`}
-                              checked={client.portalAccess}
-                            />
-                            <Label htmlFor={`direct-access-${client.id}`} className="text-sm">
-                              {client.portalAccess ? "Enabled" : "Disabled"}
-                            </Label>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {client.lastActive !== "Never" ? (
-                            <div className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1 text-muted-foreground" />
-                              {client.lastActive}
-                            </div>
+                          {client.portalAccess ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <UserCheck className="w-3 h-3 mr-1" />
+                              Active
+                            </Badge>
                           ) : (
-                            <span className="text-muted-foreground">Never</span>
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-600">
+                              <UserX className="w-3 h-3 mr-1" />
+                              Inactive
+                            </Badge>
                           )}
                         </TableCell>
+                        <TableCell>{client.lastActive}</TableCell>
                         <TableCell>
-                          <div className="flex space-x-1">
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedClient(client)}>
-                              <Eye className="h-4 w-4" />
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyLink(client.portalUrl)}
+                            >
+                              <Copy className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
-                              <FileText className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedClient(client)}
+                            >
+                              <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
-                              <Mail className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateToClientDashboard(client.id)}
+                            >
+                              <ExternalLink className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="indirect" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search indirect clients..." 
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
-            <Button onClick={() => setShowInviteDialog(true)}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Generate Onboarding Link
-            </Button>
+          <div className="flex items-center space-x-2">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search indirect clients..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
           </div>
           
           <Card>
@@ -820,88 +620,66 @@ const ClientManagement = () => {
                     <TableHead>Business Name</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Portal URL</TableHead>
+                    <TableHead>Portal Access</TableHead>
                     <TableHead>Last Active</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients
-                    .filter(client => client.clientType === "indirect")
-                    .map(client => (
+                  {filteredClients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        No indirect clients found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredClients.map(client => (
                       <TableRow key={client.id}>
                         <TableCell className="font-medium">{client.name}</TableCell>
                         <TableCell>{client.contact}</TableCell>
                         <TableCell>{client.email}</TableCell>
                         <TableCell>
-                          {client.portalUrl ? (
-                            <div className="flex items-center">
-                              <span className="text-sm text-muted-foreground truncate max-w-xs mr-2">
-                                {client.portalUrl}
-                              </span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6"
-                                onClick={() => handleCopyLink(client.portalUrl || "")}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
+                          {client.portalAccess ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <UserCheck className="w-3 h-3 mr-1" />
+                              Active
+                            </Badge>
                           ) : (
-                            <span className="text-muted-foreground">Not generated</span>
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-600">
+                              <UserX className="w-3 h-3 mr-1" />
+                              Inactive
+                            </Badge>
                           )}
                         </TableCell>
+                        <TableCell>{client.lastActive}</TableCell>
                         <TableCell>
-                          {client.lastActive !== "Never" ? (
-                            <div className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1 text-muted-foreground" />
-                              {client.lastActive}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">Never</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedClient(client)}>
-                              <Eye className="h-4 w-4" />
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyLink(client.portalUrl)}
+                            >
+                              <Copy className="w-4 h-4" />
                             </Button>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <LinkIcon className="h-4 w-4" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80">
-                                <div className="space-y-2">
-                                  <h4 className="font-medium">Client Portal Link</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    Share this link with your client to access their portal:
-                                  </p>
-                                  <div className="flex">
-                                    <Input 
-                                      readOnly 
-                                      value={generateOnboardingLink(client.name)} 
-                                      className="rounded-r-none"
-                                    />
-                                    <Button 
-                                      className="rounded-l-none" 
-                                      onClick={() => handleCopyLink(generateOnboardingLink(client.name))}
-                                    >
-                                      <Copy className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            <Button variant="ghost" size="icon">
-                              <Mail className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm" 
+                              onClick={() => setSelectedClient(client)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateToClientDashboard(client.id)}
+                            >
+                              <ExternalLink className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -909,192 +687,134 @@ const ClientManagement = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Activity Feed */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Activity className="mr-2 h-5 w-5" />
+            Recent Activity
+          </CardTitle>
+          <CardDescription>
+            Latest client portal activity and document sharing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {sharedActivities.map((activity) => (
+              <div key={activity.id} className="flex items-start space-x-4 p-4 border rounded-lg">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    {activity.type === 'document' ? <FileText className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium">{activity.title}</p>
+                  <p className="text-xs text-muted-foreground">{activity.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Client Detail Dialog */}
       {selectedClient && (
         <Dialog open={!!selectedClient} onOpenChange={() => setSelectedClient(null)}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center">
+                <Building2 className="mr-2 h-5 w-5" />
                 {selectedClient.name}
-                <Badge variant={selectedClient.clientType === "direct" ? "outline" : "secondary"} className="ml-2">
-                  {selectedClient.clientType === "direct" ? "Direct Client" : "Indirect Client"}
-                </Badge>
               </DialogTitle>
               <DialogDescription>
-                Client details and shared documents
+                Client details and portal information
               </DialogDescription>
             </DialogHeader>
             
-            <div className="flex justify-end">
-              <Button 
-                onClick={() => navigateToClientDashboard(selectedClient.id)}
-                className="mb-4"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Access Client Dashboard
-              </Button>
-            </div>
-            
-            <Tabs defaultValue="info">
-              <TabsList>
-                <TabsTrigger value="info">Contact Info</TabsTrigger>
-                <TabsTrigger value="documents">Shared Documents</TabsTrigger>
-                {selectedClient.clientType === "indirect" && (
-                  <TabsTrigger value="portal">Portal Access</TabsTrigger>
-                )}
-              </TabsList>
-              
-              <TabsContent value="info" className="space-y-4 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Contact Name</Label>
-                    <p className="text-sm font-medium">{selectedClient.contact}</p>
+            <div className="grid gap-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Contact Information
+                  </Label>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Contact:</strong> {selectedClient.contact}</p>
+                    <p><strong>Email:</strong> {selectedClient.email}</p>
+                    <p><strong>Type:</strong> {selectedClient.clientType === "direct" ? "Direct Client" : "Indirect Client"}</p>
                   </div>
-                  <div>
-                    <Label>Email</Label>
-                    <p className="text-sm font-medium">{selectedClient.email}</p>
-                  </div>
-                  <div>
-                    <Label>Phone</Label>
-                    <p className="text-sm font-medium">{selectedClient.phone}</p>
-                  </div>
-                  {selectedClient.clientType === "direct" && (
-                    <div>
-                      <Label>Portal Access</Label>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Switch 
-                          id="detail-portal-access"
-                          checked={selectedClient.portalAccess}
-                        />
-                        <Label htmlFor="detail-portal-access" className="text-sm">
-                          {selectedClient.portalAccess ? "Enabled" : "Disabled"}
-                        </Label>
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <Label>Last Active</Label>
-                    <p className="text-sm font-medium">{selectedClient.lastActive}</p>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="documents" className="pt-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">Shared Documents</h3>
-                  <Button size="sm">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Share New Document
-                  </Button>
                 </div>
                 
-                {selectedClient.documents && selectedClient.documents.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Document Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Date Shared</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedClient.documents.map(document => (
-                        <TableRow key={document.id}>
-                          <TableCell>{document.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="capitalize">
-                              {document.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{document.date}</TableCell>
-                          <TableCell>{document.size}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="icon">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No documents have been shared with this client yet.</p>
-                    <Button variant="outline" className="mt-4">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Share a Document
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Portal Access
+                  </Label>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Status:</strong> {selectedClient.portalAccess ? "Active" : "Inactive"}</p>
+                    <p><strong>Last Active:</strong> {selectedClient.lastActive}</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleCopyLink(selectedClient.portalUrl)}
+                      className="mt-2"
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy Portal Link
                     </Button>
                   </div>
-                )}
-              </TabsContent>
+                </div>
+              </div>
 
-              {selectedClient.clientType === "indirect" && (
-                <TabsContent value="portal" className="pt-4">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Client Portal URL</h3>
-                      <div className="flex">
-                        <Input 
-                          readOnly 
-                          value={selectedClient.portalUrl || generateOnboardingLink(selectedClient.name)} 
-                          className="rounded-r-none"
-                        />
-                        <Button 
-                          className="rounded-l-none" 
-                          onClick={() => handleCopyLink(selectedClient.portalUrl || generateOnboardingLink(selectedClient.name))}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Share this link with your client to access their custom portal.
-                      </p>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Shared Documents ({selectedClient.documents.length})
+                </Label>
+                <div className="border rounded-lg">
+                  {selectedClient.documents.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      No documents shared yet
                     </div>
-                    
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Send Invitation Email</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="invite-email">Recipient Email</Label>
-                          <Input id="invite-email" defaultValue={selectedClient.email} />
-                        </div>
-                        <div>
-                          <Label htmlFor="invite-subject">Subject</Label>
-                          <Input 
-                            id="invite-subject" 
-                            defaultValue={`Access your ${selectedClient.name} Portal on FOBCA Bookkeeper`} 
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="invite-message">Message</Label>
-                          <Textarea 
-                            id="invite-message" 
-                            rows={4}
-                            defaultValue={`Dear ${selectedClient.contact},\n\nYou have been invited to access your business portal on FOBCA Bookkeeper. Please use the following link to complete your registration:\n\n${selectedClient.portalUrl || generateOnboardingLink(selectedClient.name)}\n\nRegards,\nFOBCA Team`} 
-                          />
-                        </div>
-                        <Button>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Send Invitation
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              )}
-            </Tabs>
-            
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Document</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Size</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedClient.documents.map((doc) => (
+                          <TableRow key={doc.id}>
+                            <TableCell className="font-medium">{doc.name}</TableCell>
+                            <TableCell>{doc.type}</TableCell>
+                            <TableCell>{doc.date}</TableCell>
+                            <TableCell>{doc.size}</TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="sm">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelectedClient(null)}>
                 Close
+              </Button>
+              <Button onClick={() => navigateToClientDashboard(selectedClient.id)}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open Portal
               </Button>
             </DialogFooter>
           </DialogContent>

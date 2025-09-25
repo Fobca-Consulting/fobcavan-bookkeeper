@@ -642,6 +642,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       user_has_role: {
         Args: { role_name: string; user_id: string }
         Returns: boolean

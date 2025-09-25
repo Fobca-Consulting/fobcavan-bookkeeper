@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   Card, 
@@ -22,8 +22,11 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Form schema
 const loginSchema = z.object({
@@ -33,32 +36,49 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-// Mock business data - in a real app this would come from a database
-const businesses = [
-  { 
-    id: "acme", 
-    name: "Acme Corporation", 
-    logo: "/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png",
-    primaryColor: "#4f46e5"
-  },
-  { 
-    id: "globex", 
-    name: "Globex Inc", 
-    logo: "/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png",
-    primaryColor: "#10b981"
-  }
-];
+// Remove the mock businesses data since we're using real client data from database
 
 const BusinessSignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [clientData, setClientData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { businessId } = useParams();
 
-  // Find business data based on businessId
-  const businessData = businessId 
-    ? businesses.find(b => b.id === businessId) 
-    : businesses[0]; // Default to first business if no ID provided
+  // Load client data based on businessId
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (!businessId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Convert businessId back to business name (reverse of the URL conversion)
+        const businessName = businessId.replace(/-/g, ' ');
+        
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .ilike('business_name', businessName)
+          .single();
+
+        if (error) {
+          console.error('Error loading client data:', error);
+        } else {
+          setClientData(data);
+        }
+      } catch (error) {
+        console.error('Error in loadClientData:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClientData();
+  }, [businessId]);
 
   // Initialize form
   const form = useForm<LoginFormValues>({
@@ -69,21 +89,85 @@ const BusinessSignIn = () => {
     }
   });
 
-  const onSubmit = (values: LoginFormValues) => {
-    console.log("Business login values:", values);
+  const onSubmit = async (values: LoginFormValues) => {
+    if (isProcessing) return;
     
-    // For now, we'll simulate a successful login
-    toast({
-      title: "Login successful",
-      description: `Welcome to ${businessData?.name || 'FOBCA Bookkeeper'}!`,
-    });
+    setIsProcessing(true);
+    setLoginError(null);
+    const { email, password } = values;
     
-    // Redirect to dashboard
-    navigate("/");
+    try {
+      console.log("Attempting client signin...");
+      
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error("No user data returned");
+      }
+
+      // Verify user is a client and has access to this business
+      const { data: clientRecord, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (clientError || !clientRecord) {
+        await supabase.auth.signOut();
+        throw new Error("Access denied. This account is not associated with a client portal.");
+      }
+
+      // Check if trying to access the correct business portal
+      if (businessId && clientRecord.business_name.toLowerCase().replace(/\s+/g, '-') !== businessId) {
+        await supabase.auth.signOut();
+        throw new Error("Access denied. You don't have permission to access this portal.");
+      }
+
+      toast({
+        title: "Login successful",
+        description: `Welcome to ${clientRecord.business_name} portal!`,
+      });
+      
+      // Redirect to the client's specific portal
+      const portalUrl = `/client/${clientRecord.business_name.toLowerCase().replace(/\s+/g, '-')}`;
+      navigate(portalUrl, { replace: true });
+      
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setLoginError(error.message || "Invalid email or password. Please try again.");
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive"
+      });
+      setIsProcessing(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const businessName = clientData?.business_name || (businessId ? businessId.replace(/-/g, ' ') : 'Business');
+  const primaryColor = "#4f46e5"; // Default color
+
   const buttonStyle = {
-    backgroundColor: businessData?.primaryColor || "#4f46e5",
+    backgroundColor: primaryColor,
   };
 
   return (
@@ -92,17 +176,25 @@ const BusinessSignIn = () => {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src={businessData?.logo || "/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png"} 
-              alt={`${businessData?.name || 'Business'} Logo`} 
+              src="/public/fobca-logo.png" 
+              alt={`${businessName} Logo`} 
               className="h-12 w-auto" 
             />
           </div>
-          <CardTitle className="text-2xl">{businessData?.name || 'Business'} Portal</CardTitle>
+          <CardTitle className="text-2xl">{businessName} Portal</CardTitle>
           <CardDescription>
-            Sign in to access your account
+            Sign in to access your business portal
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {loginError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Login Failed</AlertTitle>
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -150,8 +242,9 @@ const BusinessSignIn = () => {
                 type="submit" 
                 className="w-full text-white" 
                 style={buttonStyle}
+                disabled={isProcessing}
               >
-                <LogIn className="mr-2 h-4 w-4" /> Sign In
+                <LogIn className="mr-2 h-4 w-4" /> {isProcessing ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
           </Form>
