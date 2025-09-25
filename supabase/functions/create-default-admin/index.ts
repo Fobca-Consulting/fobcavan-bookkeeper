@@ -117,12 +117,12 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating default admin user:", error);
     
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message 
+      error: error.message || "Unknown error occurred"
     }), {
       headers: { "Content-Type": "application/json" },
       status: 500,

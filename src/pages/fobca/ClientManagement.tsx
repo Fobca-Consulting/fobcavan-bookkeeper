@@ -54,13 +54,26 @@ import {
   Copy,
   User,
   Building,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
 
 // Interface for client data
 interface Client {
@@ -160,13 +173,55 @@ const sharedActivities = [
   { id: 5, client: "Globex Inc", document: "Invoice #985", date: "2023-05-05", action: "Viewed" }
 ];
 
+// Form schema for invite client
+const inviteClientSchema = z.object({
+  clientType: z.enum(['direct', 'indirect'], {
+    required_error: "Please select a client type",
+  }),
+  businessName: z.string().min(2, {
+    message: "Business name must be at least 2 characters.",
+  }),
+  contactName: z.string().min(2, {
+    message: "Contact name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  message: z.string().optional(),
+});
+
+type InviteClientFormValues = z.infer<typeof inviteClientSchema>;
+
+// Utility function to generate password
+const generatePassword = (length: number = 12): string => {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+};
+
 const ClientManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [currentTab, setCurrentTab] = useState("all");
+  const [isInviting, setIsInviting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Initialize form
+  const form = useForm<InviteClientFormValues>({
+    resolver: zodResolver(inviteClientSchema),
+    defaultValues: {
+      clientType: 'direct',
+      businessName: "",
+      contactName: "",
+      email: "",
+      message: "",
+    }
+  });
 
   // Filter clients based on search term and current tab
   const filteredClients = clients.filter(
@@ -190,13 +245,54 @@ const ClientManagement = () => {
     });
   };
 
-  const handleInviteClient = (values: any) => {
-    console.log("Invite values:", values);
-    toast({
-      title: "Invitation sent",
-      description: "Client has been invited to the portal",
-    });
-    setShowInviteDialog(false);
+  const handleInviteClient = async (values: InviteClientFormValues) => {
+    setIsInviting(true);
+    
+    try {
+      // Generate temporary password for the client
+      const tempPassword = generatePassword();
+      
+      // Call the edge function to send welcome email
+      const { data, error } = await supabase.functions.invoke('send-welcome-email', {
+        body: {
+          email: values.email,
+          name: values.contactName,
+          tempPassword: tempPassword,
+          clientType: values.clientType,
+          businessName: values.businessName,
+          message: values.message,
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Invitation sent successfully",
+        description: `Welcome email sent to ${values.email} with login credentials`,
+      });
+      
+      // Reset form and close dialog
+      form.reset();
+      setShowInviteDialog(false);
+      
+      console.log("Client invited successfully:", {
+        ...values,
+        tempPassword: "***HIDDEN***", // Don't log actual password
+        emailResponse: data
+      });
+      
+    } catch (error: any) {
+      console.error("Error inviting client:", error);
+      toast({
+        title: "Failed to send invitation",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const generateOnboardingLink = (businessName: string) => {
@@ -231,65 +327,153 @@ const ClientManagement = () => {
               <DialogHeader>
                 <DialogTitle>Invite New Client</DialogTitle>
                 <DialogDescription>
-                  Invite a new client to the FOBCA Bookkeeper portal
+                  Invite a new client to the FOBCA Bookkeeper portal. They will receive login credentials via email.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label htmlFor="client-type" className="mb-2 block">Client Type</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3">
-                      <input type="radio" name="clientType" id="direct" value="direct" className="mt-1" />
-                      <div>
-                        <Label htmlFor="direct" className="font-medium cursor-pointer">Direct Client</Label>
-                        <p className="text-sm text-muted-foreground">
-                          FOBCA manages their accounts with read-only access
-                        </p>
-                      </div>
-                    </div>
-                    <div className="border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3">
-                      <input type="radio" name="clientType" id="indirect" value="indirect" className="mt-1" />
-                      <div>
-                        <Label htmlFor="indirect" className="font-medium cursor-pointer">Indirect Client</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Client manages their own accounts
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="business-name">Business Name</Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="business-name" className="pl-10" placeholder="Enter business name" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="contact-name">Contact Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="contact-name" className="pl-10" placeholder="Enter contact name" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="email" type="email" className="pl-10" placeholder="Enter email address" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="message">Invitation Message (Optional)</Label>
-                    <Textarea id="message" placeholder="Add a personal message to your invitation" />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>Cancel</Button>
-                <Button onClick={() => handleInviteClient({})}>Send Invitation</Button>
-              </DialogFooter>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleInviteClient)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="clientType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Client Type</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className={`border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3 ${field.value === 'direct' ? 'border-primary bg-primary/5' : ''}`}>
+                              <input 
+                                type="radio" 
+                                name="clientType" 
+                                id="direct" 
+                                value="direct" 
+                                checked={field.value === 'direct'}
+                                onChange={() => field.onChange('direct')}
+                                className="mt-1" 
+                              />
+                              <div>
+                                <Label htmlFor="direct" className="font-medium cursor-pointer">Direct Client</Label>
+                                <p className="text-sm text-muted-foreground">
+                                  FOBCA manages their accounts with read-only access
+                                </p>
+                              </div>
+                            </div>
+                            <div className={`border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3 ${field.value === 'indirect' ? 'border-primary bg-primary/5' : ''}`}>
+                              <input 
+                                type="radio" 
+                                name="clientType" 
+                                id="indirect" 
+                                value="indirect" 
+                                checked={field.value === 'indirect'}
+                                onChange={() => field.onChange('indirect')}
+                                className="mt-1" 
+                              />
+                              <div>
+                                <Label htmlFor="indirect" className="font-medium cursor-pointer">Indirect Client</Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Client manages their own accounts
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="businessName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business Name</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                            <Input {...field} className="pl-10" placeholder="Enter business name" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="contactName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Name</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                            <Input {...field} className="pl-10" placeholder="Enter contact name" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                            <Input {...field} type="email" className="pl-10" placeholder="Enter email address" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Invitation Message (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder="Add a personal message to your invitation" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <DialogFooter>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        form.reset();
+                        setShowInviteDialog(false);
+                      }}
+                      disabled={isInviting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isInviting}>
+                      {isInviting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Send Invitation
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
           
