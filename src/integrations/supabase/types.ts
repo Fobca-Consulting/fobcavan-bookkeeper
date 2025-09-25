@@ -35,6 +35,51 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          address: string | null
+          business_name: string
+          client_type: string
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          last_active: string | null
+          phone: string | null
+          portal_access: boolean | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          client_type: string
+          contact_name: string
+          created_at?: string
+          email: string
+          id?: string
+          last_active?: string | null
+          phone?: string | null
+          portal_access?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          client_type?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          last_active?: string | null
+          phone?: string | null
+          portal_access?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       customer_communications: {
         Row: {
           communication_type: string
@@ -586,6 +631,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_client_user: {
+        Args: {
+          p_address?: string
+          p_business_name: string
+          p_client_type: string
+          p_contact_name: string
+          p_email: string
+          p_phone?: string
+        }
+        Returns: Json
+      }
       user_has_role: {
         Args: { role_name: string; user_id: string }
         Returns: boolean
