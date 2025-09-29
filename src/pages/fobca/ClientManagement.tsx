@@ -254,15 +254,16 @@ const ClientManagement = () => {
                 Invite Client
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Invite New Client</DialogTitle>
                 <DialogDescription>
                   Invite a new client to the FOBCA Bookkeeper portal. They will receive login credentials via email.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleInviteClient)} className="space-y-4">
+              <div className="flex-1 overflow-y-auto pr-2">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleInviteClient)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="clientType"
@@ -392,21 +393,22 @@ const ClientManagement = () => {
                     )}
                   />
 
-                  <DialogFooter>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setShowInviteDialog(false)}
-                      disabled={isInviting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isInviting}>
-                      {isInviting ? "Creating..." : "Send Invitation"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
+                    <DialogFooter className="flex-shrink-0 mt-6 pt-4 border-t">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setShowInviteDialog(false)}
+                        disabled={isInviting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={isInviting}>
+                        {isInviting ? "Creating..." : "Send Invitation"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
