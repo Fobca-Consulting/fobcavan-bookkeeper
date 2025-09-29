@@ -74,47 +74,119 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Creating client user for ${email} - ${businessName}`);
 
-    // Create the user in Supabase Auth
-    const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { 
-        full_name: contactName, 
-        role: 'client',
-        business_name: businessName 
-      },
-    });
+    let userId: string;
+    let isExistingUser = false;
 
-    if (createUserError) {
-      throw createUserError;
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users.find(u => u.email === email);
+
+    if (existingUser) {
+      console.log(`User ${email} already exists, updating password and metadata`);
+      isExistingUser = true;
+      userId = existingUser.id;
+
+      // Update the existing user's password and metadata
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        userId,
+        {
+          password: tempPassword,
+          user_metadata: { 
+            full_name: contactName, 
+            role: 'client',
+            business_name: businessName 
+          },
+        }
+      );
+
+      if (updateError) {
+        throw updateError;
+      }
+    } else {
+      // Create new user in Supabase Auth
+      const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { 
+          full_name: contactName, 
+          role: 'client',
+          business_name: businessName 
+        },
+      });
+
+      if (createUserError) {
+        throw createUserError;
+      }
+
+      if (!authData.user) {
+        throw new Error("Failed to create user");
+      }
+
+      userId = authData.user.id;
     }
 
-    if (!authData.user) {
-      throw new Error("Failed to create user");
-    }
-
-    // Create client record in the clients table
-    const { data: clientData, error: clientError } = await supabaseAdmin
+    // Check if client record exists
+    const { data: existingClient } = await supabaseAdmin
       .from("clients")
-      .insert({
-        business_name: businessName,
-        client_type: clientType,
-        contact_name: contactName,
-        email: email,
-        phone: phone,
-        address: address,
-        portal_access: true,
-        user_id: authData.user.id
-      })
       .select()
-      .single();
+      .eq("email", email)
+      .maybeSingle();
 
-    if (clientError) {
-      console.error("Error creating client record:", clientError);
-      // Clean up the auth user if client creation fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      throw clientError;
+    let clientData;
+
+    if (existingClient) {
+      // Update existing client record
+      const { data: updatedClient, error: updateError } = await supabaseAdmin
+        .from("clients")
+        .update({
+          business_name: businessName,
+          client_type: clientType,
+          contact_name: contactName,
+          phone: phone,
+          address: address,
+          portal_access: true,
+          user_id: userId
+        })
+        .eq("email", email)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating client record:", updateError);
+        if (!isExistingUser) {
+          await supabaseAdmin.auth.admin.deleteUser(userId);
+        }
+        throw updateError;
+      }
+
+      clientData = updatedClient;
+    } else {
+      // Create new client record
+      const { data: newClient, error: clientError } = await supabaseAdmin
+        .from("clients")
+        .insert({
+          business_name: businessName,
+          client_type: clientType,
+          contact_name: contactName,
+          email: email,
+          phone: phone,
+          address: address,
+          portal_access: true,
+          user_id: userId
+        })
+        .select()
+        .single();
+
+      if (clientError) {
+        console.error("Error creating client record:", clientError);
+        if (!isExistingUser) {
+          await supabaseAdmin.auth.admin.deleteUser(userId);
+        }
+        throw clientError;
+      }
+
+      clientData = newClient;
     }
 
     // Send welcome email
@@ -147,11 +219,11 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Client user created successfully",
+        message: isExistingUser ? "Client user updated and invite resent successfully" : "Client user created successfully",
         client: clientData,
         user: {
-          id: authData.user.id,
-          email: authData.user.email,
+          id: userId,
+          email: email,
         }
       }),
       {
