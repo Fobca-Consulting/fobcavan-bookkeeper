@@ -52,7 +52,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Check if calling user is an admin
     const { data: callerProfile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("role")
+      .select("role, full_name")
       .eq("id", callingUser.id)
       .single();
 
@@ -161,6 +161,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       clientData = updatedClient;
+
+      // Log activity for update
+      await supabaseAdmin.from("client_activities").insert({
+        client_id: updatedClient.id,
+        user_id: callingUser.id,
+        action_type: "updated",
+        description: `${callerProfile.full_name || 'Admin'} updated client ${businessName}`
+      });
     } else {
       // Create new client record
       const { data: newClient, error: clientError } = await supabaseAdmin
@@ -187,6 +195,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       clientData = newClient;
+
+      // Log activity for creation
+      await supabaseAdmin.from("client_activities").insert({
+        client_id: newClient.id,
+        user_id: callingUser.id,
+        action_type: "created",
+        description: `${callerProfile.full_name || 'Admin'} created client ${businessName}`
+      });
     }
 
     // Send welcome email
