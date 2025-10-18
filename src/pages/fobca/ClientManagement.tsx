@@ -25,7 +25,8 @@ import {
   Building2,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Edit
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -35,6 +36,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useClientActivities } from "@/hooks/useClientActivities";
+import { format } from "date-fns";
 
 // Client and Document Interfaces
 interface Client {
@@ -85,12 +88,18 @@ const ClientManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [currentTab, setCurrentTab] = useState("all");
   const [isInviting, setIsInviting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Real clients data from database
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Fetch activities
+  const { activities, loading: activitiesLoading, refetch: refetchActivities } = useClientActivities();
 
   const fetchClients = async () => {
     try {
@@ -135,14 +144,22 @@ const ClientManagement = () => {
     fetchClients();
   }, []);
 
-  const sharedActivities = [
-    { id: 1, type: "document", title: "Q4 Financial Report shared with Acme Corporation", time: "2 hours ago", client: "Acme Corporation" },
-    { id: 2, type: "login", title: "John Smith accessed portal", time: "5 hours ago", client: "Acme Corporation" },
-    { id: 3, type: "document", title: "Tax documents uploaded for TechStart Solutions", time: "1 day ago", client: "TechStart Solutions" },
-  ];
-
-  // Form setup
+  // Form setup for inviting clients
   const form = useForm<InviteClientFormValues>({
+    resolver: zodResolver(inviteClientSchema),
+    defaultValues: {
+      businessName: "",
+      contactName: "",
+      email: "",
+      phone: "",
+      address: "",
+      clientType: "direct",
+      message: "",
+    },
+  });
+
+  // Form setup for editing clients
+  const editForm = useForm<InviteClientFormValues>({
     resolver: zodResolver(inviteClientSchema),
     defaultValues: {
       businessName: "",
@@ -233,6 +250,63 @@ const ClientManagement = () => {
     const client = clients.find(c => c.id === clientId);
     if (client) {
       window.open(client.portalUrl, '_blank');
+    }
+  };
+
+  const handleEditClient = (client: Client) => {
+    setEditingClient(client);
+    editForm.reset({
+      businessName: client.name,
+      contactName: client.contact,
+      email: client.email,
+      phone: "",
+      address: "",
+      clientType: client.clientType,
+      message: "",
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateClient = async (values: InviteClientFormValues) => {
+    if (!editingClient) return;
+
+    setIsUpdating(true);
+    
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          business_name: values.businessName,
+          contact_name: values.contactName,
+          email: values.email,
+          phone: values.phone || null,
+          address: values.address || null,
+          client_type: values.clientType,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', String(editingClient.id));
+
+      if (error) throw error;
+
+      toast({
+        title: "Client updated",
+        description: `${values.businessName} has been updated successfully`,
+      });
+      
+      setShowEditDialog(false);
+      setEditingClient(null);
+      await fetchClients();
+      refetchActivities();
+      
+    } catch (error: any) {
+      console.error("Error updating client:", error);
+      toast({
+        title: "Failed to update client",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -485,11 +559,20 @@ const ClientManagement = () => {
                         </TableCell>
                         <TableCell>{client.lastActive}</TableCell>
                         <TableCell>
-                          <div className="flex items-center space-x-2">
+                           <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditClient(client)}
+                              title="Edit client"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleCopyLink(client.portalUrl)}
+                              title="Copy link"
                             >
                               <Copy className="w-4 h-4" />
                             </Button>
@@ -497,6 +580,7 @@ const ClientManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => setSelectedClient(client)}
+                              title="View details"
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -504,6 +588,7 @@ const ClientManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => navigateToClientDashboard(client.id)}
+                              title="Open portal"
                             >
                               <ExternalLink className="w-4 h-4" />
                             </Button>
@@ -569,12 +654,21 @@ const ClientManagement = () => {
                           )}
                         </TableCell>
                         <TableCell>{client.lastActive}</TableCell>
-                        <TableCell>
+                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleEditClient(client)}
+                              title="Edit client"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleCopyLink(client.portalUrl)}
+                              title="Copy link"
                             >
                               <Copy className="w-4 h-4" />
                             </Button>
@@ -582,6 +676,7 @@ const ClientManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => setSelectedClient(client)}
+                              title="View details"
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -589,6 +684,7 @@ const ClientManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => navigateToClientDashboard(client.id)}
+                              title="Open portal"
                             >
                               <ExternalLink className="w-4 h-4" />
                             </Button>
@@ -654,12 +750,21 @@ const ClientManagement = () => {
                           )}
                         </TableCell>
                         <TableCell>{client.lastActive}</TableCell>
-                        <TableCell>
+                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleEditClient(client)}
+                              title="Edit client"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleCopyLink(client.portalUrl)}
+                              title="Copy link"
                             >
                               <Copy className="w-4 h-4" />
                             </Button>
@@ -667,6 +772,7 @@ const ClientManagement = () => {
                               variant="ghost"
                               size="sm" 
                               onClick={() => setSelectedClient(client)}
+                              title="View details"
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -674,6 +780,7 @@ const ClientManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => navigateToClientDashboard(client.id)}
+                              title="Open portal"
                             >
                               <ExternalLink className="w-4 h-4" />
                             </Button>
@@ -697,25 +804,37 @@ const ClientManagement = () => {
             Recent Activity
           </CardTitle>
           <CardDescription>
-            Latest client portal activity and document sharing
+            Latest client management activity by staff members
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {sharedActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-4 p-4 border rounded-lg">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {activity.type === 'document' ? <FileText className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium">{activity.title}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
+          {activitiesLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Loading activities...
+            </div>
+          ) : activities.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No recent activity. Activity will be logged when clients are created or updated.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {activities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-4 p-4 border rounded-lg">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      {activity.action_type === 'created' ? <UserPlus className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(activity.created_at), "PPp")}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -819,6 +938,154 @@ const ClientManagement = () => {
                 Open Portal
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Client Dialog */}
+      {editingClient && (
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle>Edit Client</DialogTitle>
+              <DialogDescription>
+                Update client information. Changes will be logged in activity feed.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto pr-2">
+              <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(handleUpdateClient)} className="space-y-4">
+                  <FormField
+                    control={editForm.control}
+                    name="clientType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Client Type</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className={`border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3 ${field.value === 'direct' ? 'border-primary bg-primary/5' : ''}`}>
+                              <input
+                                type="radio"
+                                value="direct"
+                                checked={field.value === 'direct'}
+                                onChange={() => field.onChange('direct')}
+                                className="mt-1"
+                              />
+                              <div>
+                                <div className="font-medium">Direct Client</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Full access to portal and services
+                                </div>
+                              </div>
+                            </div>
+                            <div className={`border rounded-md p-4 cursor-pointer hover:border-primary flex items-start space-x-3 ${field.value === 'indirect' ? 'border-primary bg-primary/5' : ''}`}>
+                              <input
+                                type="radio"
+                                value="indirect"
+                                checked={field.value === 'indirect'}
+                                onChange={() => field.onChange('indirect')}
+                                className="mt-1"
+                              />
+                              <div>
+                                <div className="font-medium">Indirect Client</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Limited portal access through partner
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="businessName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter business name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="contactName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter contact person's name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Enter email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter phone number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Enter business address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <DialogFooter className="flex-shrink-0 mt-6 pt-4 border-t">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setShowEditDialog(false)}
+                      disabled={isUpdating}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isUpdating}>
+                      {isUpdating ? "Updating..." : "Update Client"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </div>
           </DialogContent>
         </Dialog>
       )}
