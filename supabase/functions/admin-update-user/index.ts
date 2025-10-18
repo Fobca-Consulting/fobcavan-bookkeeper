@@ -1,7 +1,13 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+
+interface UpdateUserRequest {
+  userId: string;
+  full_name?: string;
+  role?: string;
+  active?: boolean;
+}
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight request
@@ -46,56 +52,57 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", callingUser.id);
 
     if (roleError || !callerRoles.some(r => r.role === "admin")) {
-      throw new Error("Only admins can access user list");
+      throw new Error("Only admins can update users");
     }
 
-    // Get all users with their profiles
-    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
+    // Get user data from request
+    const { userId, full_name, role, active }: UpdateUserRequest = await req.json();
+
+    // Update profile
+    const profileUpdates: any = {};
+    if (full_name !== undefined) profileUpdates.full_name = full_name;
+    if (active !== undefined) profileUpdates.active = active;
     
-    if (authUsersError) {
-      throw authUsersError;
+    if (Object.keys(profileUpdates).length > 0) {
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .update(profileUpdates)
+        .eq("id", userId);
+
+      if (profileError) {
+        throw profileError;
+      }
     }
 
-    // Get all profiles
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from("profiles")
-      .select("*");
+    // Update role if changed
+    if (role !== undefined) {
+      // Delete existing roles
+      await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
 
-    if (profilesError) {
-      throw profilesError;
+      // Insert new role
+      const { error: roleInsertError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role });
+
+      if (roleInsertError) {
+        throw roleInsertError;
+      }
+
+      // Also update profile for backward compatibility
+      await supabaseAdmin
+        .from("profiles")
+        .update({ role })
+        .eq("id", userId);
     }
-
-    // Get all user roles
-    const { data: userRoles, error: userRolesError } = await supabaseAdmin
-      .from("user_roles")
-      .select("*");
-
-    if (userRolesError) {
-      throw userRolesError;
-    }
-
-    // Combine auth, profile, and role data
-    const users = authUsers.users.map(authUser => {
-      const profile = profiles.find(p => p.id === authUser.id) || {};
-      const roles = userRoles.filter(r => r.user_id === authUser.id).map(r => r.role);
-      const primaryRole = roles[0] || profile.role || 'staff'; // Fallback to profile role for compatibility
-      
-      return {
-        id: authUser.id,
-        email: authUser.email,
-        full_name: profile.full_name || authUser.user_metadata?.full_name || 'Unnamed User',
-        role: primaryRole,
-        roles: roles,
-        active: profile.active !== undefined ? profile.active : true,
-        last_active: profile.last_active || null,
-        created_at: authUser.created_at,
-      };
-    });
 
     // Return success response
     return new Response(
       JSON.stringify({ 
-        users 
+        success: true, 
+        message: "User updated successfully"
       }),
       {
         headers: {
@@ -106,9 +113,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error fetching users:", error);
+    console.error("Error updating user:", error);
     return new Response(
       JSON.stringify({
+        success: false,
         error: error.message || "Unknown error occurred",
       }),
       {
@@ -116,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
           ...corsHeaders,
           "Content-Type": "application/json",
         },
-        status: error.message === "Unauthorized" || error.message === "Only admins can access user list" ? 403 : 500,
+        status: error.message === "Unauthorized" || error.message === "Only admins can update users" ? 403 : 500,
       }
     );
   }

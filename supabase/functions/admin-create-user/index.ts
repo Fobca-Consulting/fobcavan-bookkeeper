@@ -69,13 +69,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Get user data from request
     const { email, full_name, role, active }: CreateUserRequest = await req.json();
 
-    // Generate temporary password
-    const tempPassword = generateTemporaryPassword();
-
-    // Create the user in Supabase Auth
+    // Create the user in Supabase Auth with email confirmation disabled
+    // User will set their own password via the password reset link
     const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name, role },
     });
@@ -91,7 +88,23 @@ const handler = async (req: Request): Promise<Response> => {
         .update({ active })
         .eq("id", authData.user.id);
 
-      // Send welcome email
+      // Add role to user_roles table
+      await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: authData.user.id, role });
+
+      // Generate password reset link
+      const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+      });
+
+      if (resetError) {
+        console.error("Error generating reset link:", resetError);
+        throw resetError;
+      }
+
+      // Send welcome email with password setup link
       await fetch(
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-welcome-email`,
         {
@@ -103,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: JSON.stringify({
             email,
             name: full_name,
-            tempPassword,
+            setupLink: resetData.properties.action_link,
           }),
         }
       );

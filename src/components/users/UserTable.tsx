@@ -17,6 +17,7 @@ interface UserTableProps {
   users: UserProfile[];
   onEditUser: (user: UserProfile) => void;
   onToggleStatus: (user: UserProfile) => void;
+  onDeleteUser?: (user: UserProfile) => void;
   isLoading: boolean;
 }
 
@@ -24,6 +25,7 @@ const UserTable: React.FC<UserTableProps> = ({
   users,
   onEditUser,
   onToggleStatus,
+  onDeleteUser,
   isLoading,
 }) => {
   // Generate badge variant based on user role
@@ -89,6 +91,15 @@ const UserTable: React.FC<UserTableProps> = ({
                 >
                   {user.active ? "Deactivate" : "Activate"}
                 </Button>
+                {onDeleteUser && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onDeleteUser(user)}
+                  >
+                    Delete
+                  </Button>
+                )}
               </div>
             </TableCell>
           </TableRow>

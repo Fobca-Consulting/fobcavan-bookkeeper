@@ -21,6 +21,7 @@ const UserManagement = () => {
     handleEditUser,
     toggleUserStatus,
     handleFormSubmit,
+    handleDeleteUser,
   } = useUsers();
   
   const { user } = useAuth();
@@ -33,14 +34,15 @@ const UserManagement = () => {
         if (!user) return;
         
         const { data, error } = await supabase
-          .from('profiles')
+          .from('user_roles')
           .select('role')
-          .eq('id', user.id)
-          .single();
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
         
         if (error) throw error;
         
-        if (data.role !== 'admin') {
+        if (!data) {
           toast({
             title: "Access Denied",
             description: "You don't have permission to access this page",
@@ -68,6 +70,7 @@ const UserManagement = () => {
         isLoading={isLoading}
         onEditUser={handleEditUser}
         onToggleStatus={toggleUserStatus}
+        onDeleteUser={handleDeleteUser}
       />
 
       <UserFormDialog

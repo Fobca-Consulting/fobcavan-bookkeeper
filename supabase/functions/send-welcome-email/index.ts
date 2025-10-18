@@ -11,6 +11,7 @@ interface EmailRequest {
   clientType?: string;
   businessName?: string;
   message?: string;
+  setupLink?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
   
   try {
-    const { email, name, tempPassword, clientType, businessName, message } = await req.json() as EmailRequest;
+    const { email, name, tempPassword, clientType, businessName, message, setupLink } = await req.json() as EmailRequest;
     
     console.log(`Sending welcome email to ${email} for ${businessName || name}`);
     
@@ -40,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
           <h2 style="color: #1e293b; margin-top: 0;">Hello ${name},</h2>
           <p style="color: #475569; line-height: 1.6;">
-            You have been invited to join FOBCA Bookkeeper as a ${clientType === 'direct' ? 'Direct Client' : 'Indirect Client'}.
+            ${clientType ? `You have been invited to join FOBCA Bookkeeper as a ${clientType === 'direct' ? 'Direct Client' : 'Indirect Client'}.` : 'You have been added as a user to FOBCA Bookkeeper.'}
             ${businessName ? `Your business "${businessName}" has been set up in our system.` : ''}
           </p>
           
@@ -50,7 +51,23 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
           ` : ''}
           
-          ${tempPassword ? `
+          ${setupLink ? `
+            <div style="background-color: #dcfce7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <h3 style="color: #166534; margin-top: 0;">Set Up Your Account</h3>
+              <p style="color: #166534; margin-bottom: 15px;">
+                Click the button below to set up your password and access your account:
+              </p>
+              <div style="text-align: center;">
+                <a href="${setupLink}" 
+                   style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                  Set Up Your Password
+                </a>
+              </div>
+              <p style="color: #15803d; font-size: 14px; margin-top: 15px;">
+                ⏰ This link will expire in 24 hours.
+              </p>
+            </div>
+          ` : tempPassword ? `
             <div style="background-color: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0;">
               <h3 style="color: #92400e; margin-top: 0;">Your Login Credentials</h3>
               <p style="color: #92400e; margin: 5px 0;"><strong>Email:</strong> ${email}</p>
@@ -61,12 +78,14 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
           ` : ''}
           
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="https://fobcabookkeeper.com/signin" 
-               style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-              Access Your Portal
-            </a>
-          </div>
+          ${!setupLink ? `
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://fobcabookkeeper.com/signin" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Access Your Portal
+              </a>
+            </div>
+          ` : ''}
         </div>
         
         <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">

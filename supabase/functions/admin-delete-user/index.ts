@@ -1,7 +1,10 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+
+interface DeleteUserRequest {
+  userId: string;
+}
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight request
@@ -46,56 +49,29 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", callingUser.id);
 
     if (roleError || !callerRoles.some(r => r.role === "admin")) {
-      throw new Error("Only admins can access user list");
+      throw new Error("Only admins can delete users");
     }
 
-    // Get all users with their profiles
-    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (authUsersError) {
-      throw authUsersError;
+    // Get user data from request
+    const { userId }: DeleteUserRequest = await req.json();
+
+    // Prevent self-deletion
+    if (userId === callingUser.id) {
+      throw new Error("Cannot delete your own account");
     }
 
-    // Get all profiles
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from("profiles")
-      .select("*");
+    // Delete user from auth (cascades to profiles and user_roles)
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
-    if (profilesError) {
-      throw profilesError;
+    if (deleteError) {
+      throw deleteError;
     }
-
-    // Get all user roles
-    const { data: userRoles, error: userRolesError } = await supabaseAdmin
-      .from("user_roles")
-      .select("*");
-
-    if (userRolesError) {
-      throw userRolesError;
-    }
-
-    // Combine auth, profile, and role data
-    const users = authUsers.users.map(authUser => {
-      const profile = profiles.find(p => p.id === authUser.id) || {};
-      const roles = userRoles.filter(r => r.user_id === authUser.id).map(r => r.role);
-      const primaryRole = roles[0] || profile.role || 'staff'; // Fallback to profile role for compatibility
-      
-      return {
-        id: authUser.id,
-        email: authUser.email,
-        full_name: profile.full_name || authUser.user_metadata?.full_name || 'Unnamed User',
-        role: primaryRole,
-        roles: roles,
-        active: profile.active !== undefined ? profile.active : true,
-        last_active: profile.last_active || null,
-        created_at: authUser.created_at,
-      };
-    });
 
     // Return success response
     return new Response(
       JSON.stringify({ 
-        users 
+        success: true, 
+        message: "User deleted successfully"
       }),
       {
         headers: {
@@ -106,9 +82,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error fetching users:", error);
+    console.error("Error deleting user:", error);
     return new Response(
       JSON.stringify({
+        success: false,
         error: error.message || "Unknown error occurred",
       }),
       {
@@ -116,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
           ...corsHeaders,
           "Content-Type": "application/json",
         },
-        status: error.message === "Unauthorized" || error.message === "Only admins can access user list" ? 403 : 500,
+        status: error.message === "Unauthorized" || error.message === "Only admins can delete users" ? 403 : 500,
       }
     );
   }

@@ -86,18 +86,37 @@ export const useUsers = () => {
   // Handle form submission
   const handleFormSubmit = async (data: UserFormValues) => {
     try {
-      if (isEditing && currentUser) {
-        // Update existing user
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            full_name: data.full_name,
-            role: data.role,
-            active: data.active,
-          })
-          .eq("id", currentUser.id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
 
-        if (error) throw error;
+      if (!token) {
+        throw new Error('No authenticated session found');
+      }
+
+      if (isEditing && currentUser) {
+        // Update existing user via edge function
+        const response = await fetch(
+          'https://rkkxtpywwtpveoevzvod.supabase.co/functions/v1/admin-update-user',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              userId: currentUser.id,
+              full_name: data.full_name,
+              role: data.role,
+              active: data.active,
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to update user');
+        }
 
         toast({
           title: "User Updated",
@@ -105,13 +124,6 @@ export const useUsers = () => {
         });
       } else {
         // Create new user via edge function
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-
-        if (!token) {
-          throw new Error('No authenticated session found');
-        }
-
         const response = await fetch(
           'https://rkkxtpywwtpveoevzvod.supabase.co/functions/v1/admin-create-user',
           {
@@ -137,7 +149,7 @@ export const useUsers = () => {
 
         toast({
           title: "User Created",
-          description: `${data.full_name} has been created and an invitation email was sent`,
+          description: `${data.full_name} has been created and will receive an email to set up their password`,
         });
       }
 
@@ -172,6 +184,49 @@ export const useUsers = () => {
     fetchUsers();
   }, []);
 
+  const handleDeleteUser = async (user: UserProfile) => {
+    if (!confirm(`Are you sure you want to delete ${user.full_name}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session.session) {
+        throw new Error("No active session");
+      }
+
+      const response = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId: user.id },
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || "Failed to delete user");
+      }
+
+      toast({
+        title: "User deleted",
+        description: "User has been deleted successfully.",
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to delete user. Please try again.",
+      });
+    }
+  };
+
   return {
     users,
     isLoading,
@@ -183,6 +238,7 @@ export const useUsers = () => {
     handleEditUser,
     toggleUserStatus,
     handleFormSubmit,
+    handleDeleteUser,
   };
 };
 
