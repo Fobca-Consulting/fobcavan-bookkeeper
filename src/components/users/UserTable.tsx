@@ -69,8 +69,14 @@ const UserTable: React.FC<UserTableProps> = ({
               </Badge>
             </TableCell>
             <TableCell>
-              <Badge variant={user.active ? "default" : "outline"}>
-                {user.active ? "Active" : "Inactive"}
+              <Badge 
+                variant={
+                  user.status === 'active' ? 'default' : 
+                  user.status === 'pending' ? 'outline' : 
+                  'destructive'
+                }
+              >
+                {user.status === 'pending' ? 'Pending' : user.active ? 'Active' : 'Inactive'}
               </Badge>
             </TableCell>
             <TableCell>{user.last_active}</TableCell>

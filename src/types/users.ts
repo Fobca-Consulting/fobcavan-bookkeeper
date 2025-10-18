@@ -9,6 +9,7 @@ export interface UserProfile {
   full_name: string;
   role: UserRole;
   active: boolean;
+  status: 'pending' | 'active' | 'inactive';
   last_active: string;
   created_at: string;
 }

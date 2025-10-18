@@ -10,13 +10,46 @@ interface CreateUserRequest {
   active: boolean;
 }
 
-const generateTemporaryPassword = (): string => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+const generateWelcomeEmailHtml = (name: string, setupLink: string): string => {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2563eb; margin-bottom: 10px;">Welcome to FOBCA Bookkeeper</h1>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #1e293b; margin-top: 0;">Hello ${name},</h2>
+        <p style="color: #475569; line-height: 1.6;">
+          You have been invited to join FOBCA Bookkeeper. Please set up your account to get started.
+        </p>
+        
+        <div style="background-color: #dcfce7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="color: #166534; margin-top: 0;">Set Up Your Account</h3>
+          <p style="color: #166534; margin-bottom: 15px;">
+            Click the button below to set up your password and access your account:
+          </p>
+          <div style="text-align: center;">
+            <a href="${setupLink}" 
+               style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+              Set Up Your Password
+            </a>
+          </div>
+          <p style="color: #15803d; font-size: 14px; margin-top: 15px;">
+            ⏰ This link will expire in 24 hours.
+          </p>
+        </div>
+      </div>
+      
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center;">
+        <p style="color: #64748b; font-size: 14px; margin: 0;">
+          If you have any questions, please contact your FOBCA administrator.
+        </p>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">
+          © 2024 FOBCA Bookkeeper. All rights reserved.
+        </p>
+      </div>
+    </div>
+  `;
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -69,11 +102,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Get user data from request
     const { email, full_name, role, active }: CreateUserRequest = await req.json();
 
-    // Create the user in Supabase Auth with email confirmation disabled
-    // User will set their own password via the password reset link
+    // Create the user in Supabase Auth without password
+    // User status will be pending until they set their password
     const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      email_confirm: true,
+      email_confirm: false, // User needs to confirm via recovery link
       user_metadata: { full_name, role },
     });
 
@@ -81,11 +114,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw createUserError;
     }
 
-    // Update the profile to set active status
+    // Update the profile to set status to pending and active to false
     if (authData.user) {
       await supabaseAdmin
         .from("profiles")
-        .update({ active })
+        .update({ active: false, status: 'pending' })
         .eq("id", authData.user.id);
 
       // Add role to user_roles table
@@ -93,20 +126,20 @@ const handler = async (req: Request): Promise<Response> => {
         .from("user_roles")
         .insert({ user_id: authData.user.id, role });
 
-      // Generate password reset link
+      // Generate password recovery link for user to set their password
       const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
+        type: 'recovery',
         email,
       });
 
       if (resetError) {
-        console.error("Error generating reset link:", resetError);
+        console.error("Error generating recovery link:", resetError);
         throw resetError;
       }
 
-      // Send welcome email with password setup link
+      // Send welcome email with password setup link using the new send-email function
       await fetch(
-        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-welcome-email`,
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
         {
           method: "POST",
           headers: {
@@ -114,9 +147,9 @@ const handler = async (req: Request): Promise<Response> => {
             "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({
-            email,
-            name: full_name,
-            setupLink: resetData.properties.action_link,
+            to: email,
+            subject: 'Welcome to FOBCA Bookkeeper - Set Up Your Account',
+            html: generateWelcomeEmailHtml(full_name, resetData.properties.action_link),
           }),
         }
       );
@@ -132,7 +165,8 @@ const handler = async (req: Request): Promise<Response> => {
           email,
           full_name,
           role,
-          active,
+          active: false,
+          status: 'pending',
           created_at: authData.user.created_at,
         }
       }),

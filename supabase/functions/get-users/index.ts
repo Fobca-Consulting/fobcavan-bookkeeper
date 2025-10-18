@@ -87,6 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
         role: primaryRole,
         roles: roles,
         active: profile.active !== undefined ? profile.active : true,
+        status: profile.status || 'active',
         last_active: profile.last_active || null,
         created_at: authUser.created_at,
       };
