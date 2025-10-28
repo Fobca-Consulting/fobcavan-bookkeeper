@@ -257,6 +257,7 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          client_id: string | null
           country: string | null
           created_at: string | null
           credit_limit: number | null
@@ -278,6 +279,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -299,6 +301,7 @@ export type Database = {
         Update: {
           address?: string | null
           city?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -317,7 +320,15 @@ export type Database = {
           tax_exempt?: boolean | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_items: {
         Row: {
@@ -645,6 +656,68 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          account: string
+          amount: number
+          bank_ledger: string | null
+          category: string
+          client_id: string
+          created_at: string
+          created_by: string | null
+          date: string
+          description: string
+          details: string | null
+          id: string
+          reference: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          account: string
+          amount: number
+          bank_ledger?: string | null
+          category: string
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description: string
+          details?: string | null
+          id?: string
+          reference: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          account?: string
+          amount?: number
+          bank_ledger?: string | null
+          category?: string
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string
+          details?: string | null
+          id?: string
+          reference?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -670,6 +743,7 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          client_id: string | null
           country: string | null
           created_at: string | null
           email: string | null
@@ -688,6 +762,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           email?: string | null
@@ -706,6 +781,7 @@ export type Database = {
         Update: {
           address?: string | null
           city?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           email?: string | null
@@ -721,7 +797,15 @@ export type Database = {
           vendor_code?: string
           vendor_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vendors_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
