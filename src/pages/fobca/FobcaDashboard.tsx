@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -26,30 +25,10 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
-
-// Mock data for analytics
-const analyticsData = {
-  totalClients: 48,
-  activeClients: 32,
-  totalRevenue: 124500,
-  monthlyRevenue: 15600,
-  growthRate: 8.5,
-  clientGrowth: 12.3,
-  averageClientRevenue: 2593.75,
-  revenueByType: {
-    direct: 75000,
-    indirect: 49500
-  }
-};
-
-// Recent activities
-const recentActivities = [
-  { id: 1, client: "Acme Corporation", action: "Added new user", time: "2h ago", user: "John Smith" },
-  { id: 2, client: "Globex Inc", action: "Updated account details", time: "5h ago", user: "Maria Johnson" },
-  { id: 3, client: "Wayne Enterprises", action: "Shared document", time: "Yesterday", user: "David Brown" },
-  { id: 4, client: "Stark Industries", action: "Portal access enabled", time: "2 days ago", user: "Sarah Wilson" },
-  { id: 5, client: "Umbrella Corp", action: "New client onboarded", time: "3 days ago", user: "Robert Davis" }
-];
+import { useFobcaDashboard } from "@/hooks/useFobcaDashboard";
+import { useClientActivities } from "@/hooks/useClientActivities";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from "recharts";
+import { formatDistanceToNow } from "date-fns";
 
 // Format currency
 const formatCurrency = (amount: number) => {
@@ -61,6 +40,23 @@ const formatCurrency = (amount: number) => {
 };
 
 const FobcaDashboard = () => {
+  const { stats, loading: statsLoading } = useFobcaDashboard();
+  const { activities, loading: activitiesLoading } = useClientActivities();
+
+  const activityRate = stats.totalClients > 0 
+    ? Math.round((stats.activeClients / stats.totalClients) * 100) 
+    : 0;
+
+  const averageClientRevenue = stats.totalClients > 0 
+    ? stats.totalRevenue / stats.totalClients 
+    : 0;
+
+  const directPercentage = stats.totalClients > 0 
+    ? Math.round((stats.directClients / stats.totalClients) * 100) 
+    : 0;
+
+  const indirectPercentage = 100 - directPercentage;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -85,10 +81,23 @@ const FobcaDashboard = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.totalClients}</div>
-            <div className="flex items-center pt-1 text-xs text-green-500">
-              <ArrowUpIcon className="h-4 w-4 mr-1" />
-              <span>{analyticsData.clientGrowth}% from last month</span>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : stats.totalClients}
+            </div>
+            <div className="flex items-center pt-1 text-xs">
+              {stats.clientGrowth > 0 ? (
+                <span className="text-green-500 flex items-center">
+                  <ArrowUpIcon className="h-4 w-4 mr-1" />
+                  {stats.clientGrowth.toFixed(1)}% from last month
+                </span>
+              ) : stats.clientGrowth < 0 ? (
+                <span className="text-red-500 flex items-center">
+                  <ArrowDownIcon className="h-4 w-4 mr-1" />
+                  {Math.abs(stats.clientGrowth).toFixed(1)}% from last month
+                </span>
+              ) : (
+                <span className="text-muted-foreground">No change</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -99,9 +108,13 @@ const FobcaDashboard = () => {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.activeClients}</div>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : stats.activeClients}
+            </div>
             <div className="flex items-center pt-1 text-xs">
-              <span className="text-muted-foreground">{Math.round((analyticsData.activeClients / analyticsData.totalClients) * 100)}% activity rate</span>
+              <span className="text-muted-foreground">
+                {activityRate}% activity rate
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -112,10 +125,23 @@ const FobcaDashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(analyticsData.totalRevenue)}</div>
-            <div className="flex items-center pt-1 text-xs text-green-500">
-              <ArrowUpIcon className="h-4 w-4 mr-1" />
-              <span>{analyticsData.growthRate}% from last year</span>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : formatCurrency(stats.totalRevenue)}
+            </div>
+            <div className="flex items-center pt-1 text-xs">
+              {stats.revenueGrowth > 0 ? (
+                <span className="text-green-500 flex items-center">
+                  <ArrowUpIcon className="h-4 w-4 mr-1" />
+                  {stats.revenueGrowth.toFixed(1)}% from last month
+                </span>
+              ) : stats.revenueGrowth < 0 ? (
+                <span className="text-red-500 flex items-center">
+                  <ArrowDownIcon className="h-4 w-4 mr-1" />
+                  {Math.abs(stats.revenueGrowth).toFixed(1)}% from last month
+                </span>
+              ) : (
+                <span className="text-muted-foreground">No change</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -126,9 +152,13 @@ const FobcaDashboard = () => {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(analyticsData.monthlyRevenue)}</div>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : formatCurrency(stats.monthlyRevenue)}
+            </div>
             <div className="flex items-center pt-1 text-xs">
-              <span className="text-muted-foreground">Avg. {formatCurrency(analyticsData.averageClientRevenue)}/client</span>
+              <span className="text-muted-foreground">
+                Avg. {formatCurrency(averageClientRevenue)}/client
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -138,15 +168,42 @@ const FobcaDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
+            <CardTitle>Revenue Overview (Past 12 Months)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[240px] flex items-center justify-center">
-              <BarChart3 className="h-32 w-32 text-muted-foreground" />
-              <div className="text-center text-sm text-muted-foreground">
-                Revenue chart visualization will appear here
+            {statsLoading ? (
+              <div className="h-[240px] flex items-center justify-center">
+                <div className="text-sm text-muted-foreground">Loading chart...</div>
               </div>
-            </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={stats.monthlyRevenueByMonth}>
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                    {stats.monthlyRevenueByMonth.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill="hsl(var(--primary))" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         
@@ -155,32 +212,66 @@ const FobcaDashboard = () => {
             <CardTitle>Client Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[240px] flex flex-col justify-between">
-              <div className="flex items-center justify-center mb-4">
-                <PieChart className="h-24 w-24 text-muted-foreground" />
+            {statsLoading ? (
+              <div className="h-[240px] flex items-center justify-center">
+                <div className="text-sm text-muted-foreground">Loading...</div>
               </div>
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm">
-                    <div className="w-3 h-3 rounded-full bg-primary mr-2"></div>
-                    <span className="font-medium">Direct Clients</span>
-                    <span className="ml-auto">60%</span>
+            ) : (
+              <div className="h-[240px] flex flex-col justify-between">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="relative w-32 h-32">
+                    <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="20"
+                        strokeDasharray={`${directPercentage * 2.51}, 251`}
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="hsl(var(--secondary))"
+                        strokeWidth="20"
+                        strokeDasharray={`${indirectPercentage * 2.51}, 251`}
+                        strokeDashoffset={`-${directPercentage * 2.51}`}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{stats.totalClients}</div>
+                        <div className="text-xs text-muted-foreground">Total</div>
+                      </div>
+                    </div>
                   </div>
-                  <Progress value={60} className="h-2" />
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center text-sm">
-                    <div className="w-3 h-3 rounded-full bg-secondary mr-2"></div>
-                    <span className="font-medium">Indirect Clients</span>
-                    <span className="ml-auto">40%</span>
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <div className="w-3 h-3 rounded-full bg-primary mr-2"></div>
+                      <span className="font-medium">Direct Clients</span>
+                      <span className="ml-auto">{stats.directClients} ({directPercentage}%)</span>
+                    </div>
+                    <Progress value={directPercentage} className="h-2" />
                   </div>
-                  <Progress value={40} className="h-2" />
-                </div>
-                <div className="text-xs text-center text-muted-foreground mt-4">
-                  Revenue: {formatCurrency(analyticsData.revenueByType.direct)} vs {formatCurrency(analyticsData.revenueByType.indirect)}
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <div className="w-3 h-3 rounded-full bg-secondary mr-2"></div>
+                      <span className="font-medium">Indirect Clients</span>
+                      <span className="ml-auto">{stats.indirectClients} ({indirectPercentage}%)</span>
+                    </div>
+                    <Progress value={indirectPercentage} className="h-2" />
+                  </div>
+                  <div className="text-xs text-center text-muted-foreground mt-4">
+                    Revenue: {formatCurrency(stats.directRevenue)} vs {formatCurrency(stats.indirectRevenue)}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -195,28 +286,37 @@ const FobcaDashboard = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentActivities.map(activity => (
-                <TableRow key={activity.id}>
-                  <TableCell className="font-medium">{activity.client}</TableCell>
-                  <TableCell>{activity.action}</TableCell>
-                  <TableCell>{activity.user}</TableCell>
-                  <TableCell className="text-muted-foreground flex items-center">
-                    <Clock className="h-3 w-3 mr-1" /> {activity.time}
-                  </TableCell>
+          {activitiesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-muted-foreground">Loading activities...</div>
+            </div>
+          ) : activities.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-muted-foreground">No recent activities</div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Time</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {activities.map(activity => (
+                  <TableRow key={activity.id}>
+                    <TableCell className="font-medium capitalize">{activity.action_type}</TableCell>
+                    <TableCell>{activity.description}</TableCell>
+                    <TableCell className="text-muted-foreground flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       

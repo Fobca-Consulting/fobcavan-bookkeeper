@@ -70,6 +70,44 @@ export type Database = {
           },
         ]
       }
+      client_revenue: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          revenue_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          revenue_date?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          revenue_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_revenue_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
