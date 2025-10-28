@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,8 +35,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ClientManagement from "./pages/fobca/ClientManagement";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
-import { useEffect } from "react";
-import { setupDefaultAdmin } from "./utils/setupAdmin";
+import { forceCreateAdmin } from "./utils/setupAdmin";
 
 const queryClient = new QueryClient();
 
@@ -43,7 +43,6 @@ const App = () => {
   useEffect(() => {
     // Force create the admin user to ensure it exists with correct credentials
     const createAdmin = async () => {
-      const { forceCreateAdmin } = await import('./utils/setupAdmin');
       const success = await forceCreateAdmin();
       if (success) {
         console.log('Admin user created/updated successfully');
