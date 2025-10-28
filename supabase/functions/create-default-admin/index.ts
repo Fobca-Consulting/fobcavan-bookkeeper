@@ -2,6 +2,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Create a Supabase client with the service role key
 const supabaseAdmin = createClient(
   // Supabase API URL - env var exported by default.
@@ -12,6 +17,11 @@ const supabaseAdmin = createClient(
 );
 
 const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const forceCreate = body.force === true;
@@ -105,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
         message: forceCreate ? "Admin user force created successfully" : "Default admin user created successfully",
         user: { email, fullName }
       }), {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -114,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
       success: true,
       message: "Admin user already exists" 
     }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: any) {
@@ -124,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
       success: false,
       error: error.message || "Unknown error occurred"
     }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
