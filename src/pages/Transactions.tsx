@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,121 +38,18 @@ import { TransactionDetails } from "@/components/transactions/transaction-detail
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
-
-// Define a type for transaction data
-interface Transaction {
-  id: number;
-  date: string;
-  description: string;
-  category: string;
-  account: string;
-  reference: string;
-  amount: number;
-  type: string;
-  status: string;
-  details?: string;
-  attachments?: string[];
-}
-
-const transactionData: Transaction[] = [
-  { 
-    id: 1, 
-    date: "2023-05-15", 
-    description: "Sales Revenue", 
-    category: "Revenue",
-    account: "Sales", 
-    reference: "INV-001",
-    amount: 2500, 
-    type: "income", 
-    status: "completed",
-    details: "Monthly sales revenue",
-    attachments: []
-  },
-  { 
-    id: 2, 
-    date: "2023-05-13", 
-    description: "Office Supplies", 
-    category: "Expense",
-    account: "Operating Expenses", 
-    reference: "PO-245",
-    amount: -350, 
-    type: "expense", 
-    status: "completed",
-    details: "Printer paper and ink cartridges",
-    attachments: []
-  },
-  { 
-    id: 3, 
-    date: "2023-05-10", 
-    description: "Client Payment", 
-    category: "Revenue", 
-    account: "Accounts Receivable",
-    reference: "PAY-123",
-    amount: 1800, 
-    type: "income", 
-    status: "completed",
-    details: "Payment for project completion",
-    attachments: []
-  },
-  { 
-    id: 4, 
-    date: "2023-05-08", 
-    description: "Utilities", 
-    category: "Expense",
-    account: "Utilities", 
-    reference: "BILL-42",
-    amount: -420, 
-    type: "expense", 
-    status: "completed",
-    details: "Electricity and water bill",
-    attachments: []
-  },
-  { 
-    id: 5, 
-    date: "2023-05-05", 
-    description: "Office Rent", 
-    category: "Expense",
-    account: "Rent", 
-    reference: "RENT-MAY",
-    amount: -2200, 
-    type: "expense", 
-    status: "completed",
-    details: "Monthly office rent",
-    attachments: []
-  },
-  { 
-    id: 6, 
-    date: "2023-05-02", 
-    description: "Software Subscription", 
-    category: "Expense",
-    account: "Software", 
-    reference: "SUB-001",
-    amount: -99, 
-    type: "expense", 
-    status: "completed",
-    details: "Monthly subscription for design software",
-    attachments: []
-  },
-  { 
-    id: 7, 
-    date: "2023-05-01", 
-    description: "Product Sales", 
-    category: "Revenue",
-    account: "Sales", 
-    reference: "INV-002",
-    amount: 3200, 
-    type: "income", 
-    status: "completed",
-    details: "Product sales for the week",
-    attachments: []
-  }
-];
+import { useParams } from "react-router-dom";
+import { useClientTransactions } from "@/hooks/useClientTransactions";
+import { downloadPDF, downloadExcel } from "@/utils/downloadUtils";
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState(transactionData);
+  const { clientId } = useParams<{ clientId: string }>();
+  const { transactions, loading, createTransaction, updateTransaction, deleteTransaction } = useClientTransactions(clientId);
+  
   const [activeTab, setActiveTab] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [newTransactionOpen, setNewTransactionOpen] = useState(false);
   const [editTransactionOpen, setEditTransactionOpen] = useState(false);
@@ -161,69 +57,43 @@ const Transactions = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   
-  const handleAddTransaction = (data: any, images: File[]) => {
-    const newTransaction = {
-      id: transactions.length + 1,
+  const handleAddTransaction = async (data: any, images: File[]) => {
+    await createTransaction({
+      client_id: clientId!,
       date: data.date.toISOString().split('T')[0],
       description: data.description,
       category: data.category,
       account: data.account,
       reference: data.reference,
-      amount: data.category === "Expense" ? -Math.abs(Number(data.amount)) : Math.abs(Number(data.amount)),
+      amount: Math.abs(Number(data.amount)),
       type: data.category === "Expense" ? "expense" : "income",
       status: "completed",
       details: data.details,
-      attachments: images.map(img => img.name),
-    };
-    
-    setTransactions([newTransaction, ...transactions]);
-    toast({
-      title: "Transaction Added",
-      description: "Your transaction has been added successfully.",
     });
+    setNewTransactionOpen(false);
   };
   
-  const handleUpdateTransaction = (data: any, images: File[]) => {
+  const handleUpdateTransaction = async (data: any, images: File[]) => {
     if (!selectedTransaction) return;
     
-    const updatedTransactions = transactions.map(transaction => 
-      transaction.id === selectedTransaction.id 
-        ? {
-            ...transaction,
-            date: data.date.toISOString().split('T')[0],
-            description: data.description,
-            category: data.category,
-            account: data.account,
-            reference: data.reference,
-            amount: data.category === "Expense" ? -Math.abs(Number(data.amount)) : Math.abs(Number(data.amount)),
-            type: data.category === "Expense" ? "expense" : "income",
-            details: data.details,
-            attachments: [...(transaction.attachments || []), ...images.map(img => img.name)],
-          }
-        : transaction
-    );
-    
-    setTransactions(updatedTransactions);
-    toast({
-      title: "Transaction Updated",
-      description: "Your transaction has been updated successfully.",
+    await updateTransaction(selectedTransaction.id, {
+      date: data.date.toISOString().split('T')[0],
+      description: data.description,
+      category: data.category,
+      account: data.account,
+      reference: data.reference,
+      amount: Math.abs(Number(data.amount)),
+      type: data.category === "Expense" ? "expense" : "income",
+      details: data.details,
     });
+    setEditTransactionOpen(false);
   };
   
-  const handleDeleteTransaction = () => {
+  const handleDeleteTransaction = async () => {
     if (!selectedTransaction) return;
-    
-    const filteredTransactions = transactions.filter(
-      transaction => transaction.id !== selectedTransaction.id
-    );
-    
-    setTransactions(filteredTransactions);
+    await deleteTransaction(selectedTransaction.id);
     setDeleteDialogOpen(false);
     setDetailsOpen(false);
-    toast({
-      title: "Transaction Deleted",
-      description: "Your transaction has been deleted successfully.",
-    });
   };
   
   const viewTransactionDetails = (transaction: any) => {
@@ -231,28 +101,108 @@ const Transactions = () => {
     setDetailsOpen(true);
   };
   
-  const editTransaction = () => {
+  const editTransactionHandler = () => {
     setDetailsOpen(false);
     setEditTransactionOpen(true);
   };
   
-  const filteredTransactions = transactions.filter(transaction => {
-    if (activeTab === "all") return true;
-    if (activeTab === "income") return transaction.type === "income";
-    if (activeTab === "expense") return transaction.type === "expense";
-    if (activeTab === "pending") return transaction.status === "pending";
-    return true;
-  });
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(transaction => {
+      // Filter by tab
+      if (activeTab === "income" && transaction.type !== "income") return false;
+      if (activeTab === "expense" && transaction.type !== "expense") return false;
+      if (activeTab === "pending" && transaction.status !== "pending") return false;
+      
+      // Filter by search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          transaction.description?.toLowerCase().includes(query) ||
+          transaction.category?.toLowerCase().includes(query) ||
+          transaction.account?.toLowerCase().includes(query) ||
+          transaction.reference?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+      
+      // Filter by date range
+      if (startDate) {
+        const txDate = new Date(transaction.date);
+        if (txDate < startDate) return false;
+      }
+      if (endDate) {
+        const txDate = new Date(transaction.date);
+        if (txDate > endDate) return false;
+      }
+      
+      return true;
+    });
+  }, [transactions, activeTab, searchQuery, startDate, endDate]);
+
+  const handleExport = (format: 'pdf' | 'excel', scope: 'current' | 'all') => {
+    const dataToExport = scope === 'current' ? filteredTransactions : transactions;
+    
+    if (dataToExport.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no transactions to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ['Date', 'Description', 'Category', 'Account', 'Reference', 'Type', 'Amount'];
+    const data = dataToExport.map(t => [
+      t.date,
+      t.description,
+      t.category,
+      t.account,
+      t.reference,
+      t.type,
+      formatCurrency(t.amount)
+    ]);
+
+    const filename = `transactions-${scope}-${new Date().toISOString().split('T')[0]}`;
+
+    if (format === 'pdf') {
+      downloadPDF('Transaction Report', headers, data, filename);
+    } else {
+      downloadExcel('Transaction Report', headers, data, filename);
+    }
+
+    toast({
+      title: "Export successful",
+      description: `Transactions exported as ${format.toUpperCase()}`,
+    });
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Transactions</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('excel', 'current')}>
+                Export Current View (Excel)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf', 'current')}>
+                Export Current View (PDF)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel', 'all')}>
+                Export All Transactions (Excel)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf', 'all')}>
+                Export All Transactions (PDF)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" onClick={() => setNewTransactionOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             New Transaction
@@ -272,6 +222,8 @@ const Transactions = () => {
                 type="search"
                 placeholder="Search transactions..."
                 className="pl-8 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <div className="flex gap-2 flex-wrap md:flex-nowrap">
@@ -329,7 +281,16 @@ const Transactions = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.length > 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <span className="ml-3 text-muted-foreground">Loading transactions...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTransactions.length > 0 ? (
                     filteredTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>{transaction.date}</TableCell>
@@ -378,7 +339,9 @@ const Transactions = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4">
-                        No transactions found. Create a new transaction to get started.
+                        {searchQuery || startDate || endDate 
+                          ? "No transactions found matching your filters." 
+                          : "No transactions found. Create a new transaction to get started."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -400,7 +363,16 @@ const Transactions = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.length > 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <span className="ml-3 text-muted-foreground">Loading transactions...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTransactions.length > 0 ? (
                     filteredTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>{transaction.date}</TableCell>
@@ -447,7 +419,9 @@ const Transactions = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4">
-                        No income transactions found.
+                        {searchQuery || startDate || endDate 
+                          ? "No income transactions found matching your filters." 
+                          : "No income transactions found."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -469,7 +443,16 @@ const Transactions = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.length > 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <span className="ml-3 text-muted-foreground">Loading transactions...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTransactions.length > 0 ? (
                     filteredTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>{transaction.date}</TableCell>
@@ -516,7 +499,9 @@ const Transactions = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4">
-                        No expense transactions found.
+                        {searchQuery || startDate || endDate 
+                          ? "No expense transactions found matching your filters." 
+                          : "No expense transactions found."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -525,9 +510,85 @@ const Transactions = () => {
             </TabsContent>
             
             <TabsContent value="pending">
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                No pending transactions found
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <span className="ml-3 text-muted-foreground">Loading transactions...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{transaction.date}</TableCell>
+                        <TableCell>{transaction.description}</TableCell>
+                        <TableCell>{transaction.category}</TableCell>
+                        <TableCell>{transaction.account}</TableCell>
+                        <TableCell>{transaction.reference}</TableCell>
+                        <TableCell className={`text-right font-medium ${
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => viewTransactionDetails(transaction)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setEditTransactionOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setSelectedTransaction(transaction);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        {searchQuery || startDate || endDate 
+                          ? "No pending transactions found matching your filters." 
+                          : "No pending transactions found."}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </TabsContent>
           </Tabs>
 
@@ -571,7 +632,7 @@ const Transactions = () => {
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
           transaction={selectedTransaction}
-          onEdit={editTransaction}
+          onEdit={editTransactionHandler}
           onDelete={() => setDeleteDialogOpen(true)}
         />
       )}
