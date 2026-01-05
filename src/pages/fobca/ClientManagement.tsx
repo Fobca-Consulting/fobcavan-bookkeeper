@@ -195,13 +195,25 @@ const ClientManagement = () => {
 
   const handleInviteClient = async (values: InviteClientFormValues) => {
     setIsInviting(true);
-    
+
     try {
+      // Ensure the caller session is valid (prevents stale JWT after user deletion)
+      const { error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        await supabase.auth.signOut({ scope: "local" });
+        toast({
+          title: "Session expired",
+          description: "Please sign in again, then retry inviting the client.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Generate temporary password for the client
       const tempPassword = generatePassword();
-      
+
       // Call the edge function to create client user
-      const { data, error } = await supabase.functions.invoke('create-client-user', {
+      const { data, error } = await supabase.functions.invoke("create-client-user", {
         body: {
           email: values.email,
           businessName: values.businessName,
@@ -211,7 +223,7 @@ const ClientManagement = () => {
           address: values.address,
           tempPassword: tempPassword,
           message: values.message,
-        }
+        },
       });
 
       if (error) {
