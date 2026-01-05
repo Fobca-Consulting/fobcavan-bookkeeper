@@ -27,7 +27,8 @@ import {
   Search, 
   Edit,
   Eye,
-  Trash
+  Trash,
+  Lock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,7 +45,7 @@ import { downloadPDF, downloadExcel } from "@/utils/downloadUtils";
 
 const Transactions = () => {
   const { clientId } = useParams<{ clientId: string }>();
-  const { transactions, loading, createTransaction, updateTransaction, deleteTransaction } = useClientTransactions(clientId);
+  const { transactions, loading, createTransaction, updateTransaction, deleteTransaction, isTransactionInClosedPeriod } = useClientTransactions(clientId);
   
   const [activeTab, setActiveTab] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -291,51 +292,61 @@ const Transactions = () => {
                       </TableCell>
                     </TableRow>
                   ) : filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>{transaction.date}</TableCell>
-                        <TableCell>{transaction.description}</TableCell>
-                        <TableCell>{transaction.category}</TableCell>
-                        <TableCell>{transaction.account}</TableCell>
-                        <TableCell>{transaction.reference}</TableCell>
-                        <TableCell className={`text-right font-medium ${
-                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => viewTransactionDetails(transaction)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => {
-                                setSelectedTransaction(transaction);
-                                setEditTransactionOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => {
-                                setSelectedTransaction(transaction);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredTransactions.map((transaction) => {
+                      const isLocked = isTransactionInClosedPeriod(transaction.date);
+                      return (
+                        <TableRow key={transaction.id} className={isLocked ? 'bg-muted/50' : ''}>
+                          <TableCell className="flex items-center gap-2">
+                            {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                            {transaction.date}
+                          </TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell>{transaction.category}</TableCell>
+                          <TableCell>{transaction.account}</TableCell>
+                          <TableCell>{transaction.reference}</TableCell>
+                          <TableCell className={`text-right font-medium ${
+                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatCurrency(transaction.amount)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => viewTransactionDetails(transaction)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {!isLocked && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedTransaction(transaction);
+                                      setEditTransactionOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedTransaction(transaction);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4">

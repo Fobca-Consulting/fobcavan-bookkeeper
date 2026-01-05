@@ -5,7 +5,8 @@ import {
   LogOut,
   Users,
   UserCog,
-  Shield
+  Shield,
+  Receipt
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,17 @@ const FobcaSidebar = () => {
         >
           <Users className="h-4 w-4 mr-2" />
           Client Management
+        </NavLink>
+        <NavLink
+          to="/fobca/transactions"
+          className={({ isActive }) =>
+            `flex items-center px-2 py-1.5 rounded-md text-sm font-medium hover:bg-gray-100 ${
+              isActive ? "bg-gray-100 text-primary" : "text-gray-700"
+            }`
+          }
+        >
+          <Receipt className="h-4 w-4 mr-2" />
+          All Transactions
         </NavLink>
         <NavLink
           to="/fobca/user-management"

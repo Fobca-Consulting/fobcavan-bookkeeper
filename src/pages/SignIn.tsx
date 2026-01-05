@@ -28,6 +28,7 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Form schema
 const loginSchema = z.object({
@@ -57,21 +58,50 @@ const SignIn = () => {
     }
   });
 
+  // Function to determine where to redirect the user based on their role
+  const getRedirectPath = async (userId: string) => {
+    // First check if user has admin role
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+    
+    if (roles?.some(r => r.role === 'admin')) {
+      return '/fobca';
+    }
+    
+    // Check if user is a client
+    const { data: clientAccess } = await supabase
+      .from('client_access')
+      .select('client_id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (clientAccess?.client_id) {
+      return `/client/${clientAccess.client_id}`;
+    }
+    
+    // Default fallback for other roles
+    return '/fobca';
+  };
+
   // Check for authenticated session and redirect if found
   useEffect(() => {
     console.log("SignIn auth state:", { loading, user, session, isProcessing });
     
     if (!loading && user && session) {
-      console.log("User is authenticated, redirecting to:", from);
+      console.log("User is authenticated, determining redirect...");
       
-      // Redirect with a very short delay to avoid potential race conditions
-      const timer = setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 100);
+      // Determine the correct redirect path based on user role
+      const handleRedirect = async () => {
+        const redirectPath = await getRedirectPath(user.id);
+        console.log("Redirecting to:", redirectPath);
+        navigate(redirectPath, { replace: true });
+      };
       
-      return () => clearTimeout(timer);
+      handleRedirect();
     }
-  }, [user, session, loading, navigate, from]);
+  }, [user, session, loading, navigate]);
 
   const onSubmit = async (values: LoginFormValues) => {
     if (isProcessing) return;
