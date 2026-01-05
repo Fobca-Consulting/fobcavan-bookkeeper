@@ -103,22 +103,39 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Admin user created in auth, ID:", data.user?.id);
     
-    // Update profiles table
+    // Update profiles table and user_roles table
     if (data.user) {
+      // Create profile
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .upsert({
           id: data.user.id,
           full_name: fullName,
           role: 'admin',
-          active: true
+          active: true,
+          status: 'active'
         });
       
       if (profileError) {
         console.error("Error creating profile:", profileError);
-        // Don't throw - user was created successfully
       } else {
         console.log("Admin profile created successfully");
+      }
+      
+      // Create user_roles entry
+      const { error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({
+          user_id: data.user.id,
+          role: 'admin'
+        }, {
+          onConflict: 'user_id,role'
+        });
+      
+      if (roleError) {
+        console.error("Error creating user role:", roleError);
+      } else {
+        console.log("Admin role created successfully");
       }
     }
     
