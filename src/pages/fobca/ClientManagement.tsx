@@ -75,14 +75,6 @@ const inviteClientSchema = z.object({
 
 type InviteClientFormValues = z.infer<typeof inviteClientSchema>;
 
-function generatePassword(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-  let result = "";
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
 
 const ClientManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -209,9 +201,6 @@ const ClientManagement = () => {
         return;
       }
 
-      // Generate temporary password for the client
-      const tempPassword = generatePassword();
-
       // Call the edge function to create client user
       const { data, error } = await supabase.functions.invoke("create-client-user", {
         body: {
@@ -221,7 +210,6 @@ const ClientManagement = () => {
           clientType: values.clientType,
           phone: values.phone,
           address: values.address,
-          tempPassword: tempPassword,
           message: values.message,
         },
       });
@@ -237,7 +225,7 @@ const ClientManagement = () => {
 
       toast({
         title: "Client created successfully",
-        description: `${values.businessName} has been added and welcome email sent to ${values.email}`,
+        description: `${values.businessName} has been added. A password setup email has been sent to ${values.email}`,
       });
       
       // Reset form and close dialog

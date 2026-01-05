@@ -1,38 +1,103 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const SetPassword = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
   const [isValidToken, setIsValidToken] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if we have a valid recovery token
-    const accessToken = searchParams.get("access_token");
-    const type = searchParams.get("type");
-    
-    if (accessToken && type === "recovery") {
-      setIsValidToken(true);
-    } else {
-      toast({
-        title: "Invalid Link",
-        description: "This password setup link is invalid or has expired.",
-        variant: "destructive",
-      });
-      setTimeout(() => navigate("/signin"), 3000);
-    }
-  }, [searchParams, navigate]);
+    const handlePasswordRecovery = async () => {
+      try {
+        // Supabase recovery links use hash fragments, not query params
+        // The auth state change will fire when a recovery link is clicked
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session error:", error);
+          throw error;
+        }
+
+        if (session) {
+          // User has a valid session from the recovery link
+          setIsValidToken(true);
+          setUserEmail(session.user.email || null);
+        } else {
+          // Listen for auth state changes (recovery link will trigger this)
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+              console.log("Auth event:", event);
+              if (event === 'PASSWORD_RECOVERY' && session) {
+                setIsValidToken(true);
+                setUserEmail(session.user.email || null);
+              } else if (event === 'SIGNED_IN' && session) {
+                // Recovery link might trigger SIGNED_IN instead
+                setIsValidToken(true);
+                setUserEmail(session.user.email || null);
+              }
+            }
+          );
+
+          // Check URL hash for recovery token (Supabase format)
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get("access_token");
+          const type = hashParams.get("type");
+
+          if (accessToken && type === "recovery") {
+            // Set the session from the recovery token
+            const { data, error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: hashParams.get("refresh_token") || "",
+            });
+
+            if (setSessionError) {
+              console.error("Set session error:", setSessionError);
+              throw setSessionError;
+            }
+
+            if (data.session) {
+              setIsValidToken(true);
+              setUserEmail(data.session.user.email || null);
+            }
+          } else if (!accessToken) {
+            // No token in URL and no session
+            toast({
+              title: "Invalid Link",
+              description: "This password setup link is invalid or has expired.",
+              variant: "destructive",
+            });
+            setTimeout(() => navigate("/signin"), 3000);
+          }
+
+          return () => subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.error("Error validating recovery token:", error);
+        toast({
+          title: "Invalid Link",
+          description: "This password setup link is invalid or has expired.",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate("/signin"), 3000);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    handlePasswordRecovery();
+  }, [navigate]);
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +166,19 @@ const SetPassword = () => {
     }
   };
 
+  if (isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Validating your link...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!isValidToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -122,7 +200,7 @@ const SetPassword = () => {
         <CardHeader>
           <CardTitle>Set Your Password</CardTitle>
           <CardDescription>
-            Create a secure password for your account
+            {userEmail ? `Create a secure password for ${userEmail}` : 'Create a secure password for your account'}
           </CardDescription>
         </CardHeader>
         <CardContent>

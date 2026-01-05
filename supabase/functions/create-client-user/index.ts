@@ -9,7 +9,6 @@ interface CreateClientRequest {
   clientType: string;
   phone?: string;
   address?: string;
-  tempPassword: string;
   message?: string;
 }
 
@@ -125,10 +124,13 @@ const handler = async (req: Request): Promise<Response> => {
         throw updateError;
       }
     } else {
-      // Create new user in Supabase Auth
+      // Create new user in Supabase Auth with a random password
+      // User will set their own password via the recovery link
+      const randomPassword = crypto.randomUUID() + crypto.randomUUID();
+      
       const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: tempPassword,
+        password: randomPassword,
         email_confirm: true,
         user_metadata: { 
           full_name: contactName, 
@@ -266,17 +268,34 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Send welcome email (invoke via Supabase client; no direct HTTP calls)
+    // Generate password recovery link for the new client to set their password
+    const appUrl = Deno.env.get("APP_URL") || "https://preview--fobca-bookkeeper-pro-8.lovable.app";
+    const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: `${appUrl}/set-password`,
+      }
+    });
+
+    if (recoveryError) {
+      console.warn("Failed to generate recovery link:", recoveryError);
+    }
+
+    const setupLink = recoveryData?.properties?.action_link || null;
+    console.log("Generated password setup link for:", email);
+
+    // Send welcome email with password setup link
     const { error: welcomeEmailError } = await supabaseAdmin.functions.invoke(
       "send-welcome-email",
       {
         body: {
           email,
           name: contactName,
-          tempPassword,
           clientType,
           businessName,
           message,
+          setupLink,
         },
       }
     );
