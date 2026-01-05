@@ -37,40 +37,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("Setting up auth state listener");
-    
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log("Auth state change event:", event);
-        
-        if (event === 'SIGNED_OUT') {
-          console.log("User signed out, clearing user and session state");
-          setUser(null);
-          setSession(null);
-        } else {
-          console.log("Auth state changed, updating user and session", currentSession?.user?.email);
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-        }
 
-        if (event === 'SIGNED_IN' && currentSession?.user) {
-          // Update user's last active timestamp
-          setTimeout(() => {
-            updateLastActive(currentSession.user.id);
-          }, 0);
-        }
+    const hardClearAuthStorage = () => {
+      if (typeof window === "undefined") return;
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          // Supabase v2 stores sessions under sb-<project-ref>-auth-token
+          if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+            localStorage.removeItem(key);
+          }
+          // Back-compat / other providers
+          if (key.startsWith("supabase.auth.")) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        console.warn("Failed to hard-clear auth storage", e);
       }
-    );
+    };
+
+    // Set up auth state listener FIRST
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      console.log("Auth state change event:", event);
+
+      if (event === "SIGNED_OUT") {
+        console.log("User signed out, clearing user and session state");
+        setUser(null);
+        setSession(null);
+      } else {
+        console.log(
+          "Auth state changed, updating user and session",
+          currentSession?.user?.email
+        );
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
+
+      if (event === "SIGNED_IN" && currentSession?.user) {
+        // Update user's last active timestamp
+        setTimeout(() => {
+          updateLastActive(currentSession.user.id);
+        }, 0);
+      }
+    });
 
     // THEN check for existing session
     const initSession = async () => {
       try {
         console.log("Checking for existing session");
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        console.log("Initial session check:", currentSession ? `Session found for ${currentSession.user.email}` : "No session");
-        
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+
+        console.log(
+          "Initial session check:",
+          currentSession
+            ? `Session found for ${currentSession.user.email}`
+            : "No session"
+        );
+
         if (currentSession?.user) {
+          // Validate that the user still exists (handles deleted users w/ stale JWT)
+          const { error: userError } = await supabase.auth.getUser();
+          if (userError) {
+            console.warn("Session invalid; forcing sign-out:", userError);
+            hardClearAuthStorage();
+            await supabase.auth.signOut({ scope: "local" });
+            setSession(null);
+            setUser(null);
+            toast({
+              title: "Session expired",
+              description: "Please sign in again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
           setSession(currentSession);
           setUser(currentSession.user);
           updateLastActive(currentSession.user.id);
@@ -154,10 +198,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // Force clear localStorage to ensure all tokens are removed
-      if (typeof window !== 'undefined') {
-        // Clear all Supabase related items
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('supabase.auth.')) {
+      if (typeof window !== "undefined") {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+            localStorage.removeItem(key);
+          }
+          if (key.startsWith("supabase.auth.")) {
             localStorage.removeItem(key);
           }
         });

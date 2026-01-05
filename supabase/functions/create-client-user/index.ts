@@ -43,22 +43,32 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Verify the JWT token to get user ID
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user: callingUser },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !callingUser) {
-      throw new Error("Unauthorized");
+      console.warn("Auth error in create-client-user:", authError);
+      throw new Error("Invalid session. Please sign out and sign in again.");
     }
 
-    // Check if calling user is an admin
-    const { data: callerProfile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("role, full_name")
-      .eq("id", callingUser.id)
-      .single();
+    // Enforce role-based access using the dedicated roles table
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc("has_role", {
+      _role: "admin",
+      _user_id: callingUser.id,
+    });
 
-    if (profileError || callerProfile.role !== "admin") {
+    if (roleError || !isAdmin) {
       throw new Error("Only admins can create client users");
     }
+
+    // Fetch display name for activity logging
+    const { data: callerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", callingUser.id)
+      .maybeSingle();
 
     // Get client data from request
     const { 
@@ -194,7 +204,7 @@ const handler = async (req: Request): Promise<Response> => {
         client_id: updatedClient.id,
         user_id: callingUser.id,
         action_type: "updated",
-        description: `${callerProfile.full_name || 'Admin'} updated client ${businessName}`
+        description: `${callerProfile?.full_name || 'Admin'} updated client ${businessName}`
       });
       
       // Ensure client_access entry exists for updated client
@@ -240,7 +250,7 @@ const handler = async (req: Request): Promise<Response> => {
         client_id: newClient.id,
         user_id: callingUser.id,
         action_type: "created",
-        description: `${callerProfile.full_name || 'Admin'} created client ${businessName}`
+        description: `${callerProfile?.full_name || 'Admin'} created client ${businessName}`
       });
       
       // Create client_access entry to link the user to their client
@@ -256,28 +266,26 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Send welcome email
-    const emailResponse = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-welcome-email`,
+    // Send welcome email (invoke via Supabase client; no direct HTTP calls)
+    const { error: welcomeEmailError } = await supabaseAdmin.functions.invoke(
+      "send-welcome-email",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+        body: {
           email,
           name: contactName,
           tempPassword,
           clientType,
           businessName,
-          message
-        }),
+          message,
+        },
       }
     );
 
-    if (!emailResponse.ok) {
-      console.warn("Failed to send welcome email, but user was created successfully");
+    if (welcomeEmailError) {
+      console.warn(
+        "Failed to send welcome email, but user was created successfully:",
+        welcomeEmailError
+      );
     }
 
     console.log("Client user created successfully:", clientData);
@@ -313,7 +321,11 @@ const handler = async (req: Request): Promise<Response> => {
           ...corsHeaders,
           "Content-Type": "application/json",
         },
-        status: error.message === "Unauthorized" || error.message === "Only admins can create client users" ? 403 : 500,
+         status:
+           error.message?.startsWith("Invalid session") ||
+           error.message === "Only admins can create client users"
+             ? 403
+             : 500,
       }
     );
   }
