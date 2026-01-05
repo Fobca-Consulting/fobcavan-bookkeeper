@@ -15,14 +15,25 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     // Verify that the request is authenticated
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
+      console.error('Missing Authorization header');
       throw new Error('Missing Authorization header');
     }
 
     // Create Supabase admin client with service role key
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
+      throw new Error('Server configuration error');
+    }
+
     const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      supabaseUrl,
+      supabaseServiceKey,
       {
         auth: {
           autoRefreshToken: false,
@@ -33,11 +44,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Verify the JWT token to get user ID
     const token = authHeader.replace("Bearer ", "");
+    console.log('Token length:', token.length);
+    
     const { data: { user: callingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
-    if (authError || !callingUser) {
-      throw new Error("Unauthorized");
+    if (authError) {
+      console.error('Auth error:', authError.message);
+      throw new Error("Unauthorized: " + authError.message);
     }
+    
+    if (!callingUser) {
+      console.error('No user found for token');
+      throw new Error("Unauthorized: No user found");
+    }
+    
+    console.log('Authenticated user:', callingUser.id);
 
     // Check if calling user is an admin
     const { data: callerRoles, error: roleError } = await supabaseAdmin
