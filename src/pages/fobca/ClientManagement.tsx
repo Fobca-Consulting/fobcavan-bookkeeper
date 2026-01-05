@@ -218,6 +218,11 @@ const ClientManagement = () => {
         throw error;
       }
 
+      // Check if the response indicates an error
+      if (data && !data.success && data.error) {
+        throw new Error(data.error);
+      }
+
       toast({
         title: "Client created successfully",
         description: `${values.businessName} has been added and welcome email sent to ${values.email}`,
@@ -232,9 +237,17 @@ const ClientManagement = () => {
       
     } catch (error: any) {
       console.error("Error inviting client:", error);
+      
+      // Check if it's an email already exists error
+      const errorMessage = error.message || "Please try again later";
+      const isEmailExistsError = errorMessage.toLowerCase().includes('already registered') || 
+                                 errorMessage.toLowerCase().includes('already exists');
+      
       toast({
-        title: "Failed to create client",
-        description: error.message || "Please try again later",
+        title: isEmailExistsError ? "Email Already Registered" : "Failed to create client",
+        description: isEmailExistsError 
+          ? `The email ${values.email} is already associated with another client. Please use a different email address.`
+          : errorMessage,
         variant: "destructive",
       });
     } finally {

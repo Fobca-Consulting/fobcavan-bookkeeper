@@ -74,17 +74,29 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Creating client user for ${email} - ${businessName}`);
 
+    // Check if email already exists in clients table first (email uniqueness check)
+    const { data: existingClientByEmail } = await supabaseAdmin
+      .from("clients")
+      .select("id, email, business_name")
+      .eq("email", email)
+      .maybeSingle();
+
+    // Check if user already exists in auth
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingAuthUser = existingUsers?.users.find(u => u.email === email);
+
+    // If email exists in clients table and we're not explicitly updating, throw error
+    if (existingClientByEmail && !existingAuthUser) {
+      throw new Error(`Email ${email} is already registered to another client: ${existingClientByEmail.business_name}`);
+    }
+
     let userId: string;
     let isExistingUser = false;
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users.find(u => u.email === email);
-
-    if (existingUser) {
+    if (existingAuthUser) {
       console.log(`User ${email} already exists, updating password and metadata`);
       isExistingUser = true;
-      userId = existingUser.id;
+      userId = existingAuthUser.id;
 
       // Update the existing user's password and metadata
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -124,6 +136,21 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       userId = authData.user.id;
+      
+      // Create profile for the new user
+      await supabaseAdmin.from("profiles").upsert({
+        id: userId,
+        full_name: contactName,
+        role: 'client',
+        active: true,
+        status: 'pending'
+      });
+      
+      // Add client role to user_roles
+      await supabaseAdmin.from("user_roles").upsert({
+        user_id: userId,
+        role: 'client'
+      }, { onConflict: 'user_id,role' });
     }
 
     // Check if client record exists
@@ -169,6 +196,18 @@ const handler = async (req: Request): Promise<Response> => {
         action_type: "updated",
         description: `${callerProfile.full_name || 'Admin'} updated client ${businessName}`
       });
+      
+      // Ensure client_access entry exists for updated client
+      await supabaseAdmin.from("client_access").upsert({
+        user_id: userId,
+        client_id: updatedClient.id
+      }, { onConflict: 'user_id,client_id' }).then(({ error }) => {
+        if (error) {
+          console.error("Error creating/updating client_access:", error);
+        } else {
+          console.log("Client access ensured for user", userId, "to client", updatedClient.id);
+        }
+      });
     } else {
       // Create new client record
       const { data: newClient, error: clientError } = await supabaseAdmin
@@ -202,6 +241,18 @@ const handler = async (req: Request): Promise<Response> => {
         user_id: callingUser.id,
         action_type: "created",
         description: `${callerProfile.full_name || 'Admin'} created client ${businessName}`
+      });
+      
+      // Create client_access entry to link the user to their client
+      await supabaseAdmin.from("client_access").upsert({
+        user_id: userId,
+        client_id: newClient.id
+      }, { onConflict: 'user_id,client_id' }).then(({ error }) => {
+        if (error) {
+          console.error("Error creating client_access:", error);
+        } else {
+          console.log("Client access created for user", userId, "to client", newClient.id);
+        }
       });
     }
 

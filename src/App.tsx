@@ -30,9 +30,11 @@ import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientLayout from "./components/ClientLayout";
 import ClientSettings from "./pages/client/ClientSettings";
 import ClientUsers from "./pages/client/ClientUsers";
+import AccountingPeriods from "./pages/client/AccountingPeriods";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ClientManagement from "./pages/fobca/ClientManagement";
+import AdminTransactions from "./pages/fobca/AdminTransactions";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
 import { forceCreateAdmin } from "./utils/setupAdmin";
@@ -78,6 +80,7 @@ const App = () => {
                 }>
                   <Route index element={<FobcaDashboard />} />
                   <Route path="client-management" element={<ClientManagement />} />
+                  <Route path="transactions" element={<AdminTransactions />} />
                   <Route path="user-management" element={<UserManagement />} />
                   <Route path="user-permissions" element={<UserPermissions />} />
                 </Route>
@@ -100,6 +103,7 @@ const App = () => {
                   <Route path="investments" element={<Investments />} />
                   <Route path="journal-posting" element={<JournalPosting />} />
                   <Route path="inventory" element={<Inventory />} />
+                  <Route path="accounting-periods" element={<AccountingPeriods />} />
                   <Route path="settings" element={<ClientSettings />} />
                   <Route path="users" element={<ClientUsers />} />
                 </Route>
