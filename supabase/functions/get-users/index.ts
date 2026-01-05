@@ -60,15 +60,70 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Authenticated user:', callingUser.id);
 
-    // Check if calling user is an admin
+    // Check if calling user is an admin - check user_roles first, then profile as fallback
     const { data: callerRoles, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", callingUser.id);
 
-    if (roleError || !callerRoles.some(r => r.role === "admin")) {
+    if (roleError) {
+      console.error('Error fetching user roles:', roleError);
+    }
+    
+    let isAdmin = callerRoles?.some(r => r.role === "admin");
+    
+    // Fallback: check profile role or user metadata
+    if (!isAdmin) {
+      console.log('No admin role in user_roles, checking profile and metadata...');
+      
+      // Check profile
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", callingUser.id)
+        .single();
+      
+      if (profile?.role === 'admin') {
+        isAdmin = true;
+        console.log('Admin found in profile');
+        
+        // Also add to user_roles for future consistency
+        await supabaseAdmin.from("user_roles").upsert({
+          user_id: callingUser.id,
+          role: 'admin'
+        }, { onConflict: 'user_id,role' }).then(({ error }) => {
+          if (error) console.error('Error syncing user_roles:', error);
+          else console.log('Synced admin role to user_roles table');
+        });
+      }
+      
+      // Check user metadata as last resort
+      if (!isAdmin && callingUser.user_metadata?.role === 'admin') {
+        isAdmin = true;
+        console.log('Admin found in user metadata');
+        
+        // Sync to both tables
+        await Promise.all([
+          supabaseAdmin.from("profiles").upsert({
+            id: callingUser.id,
+            full_name: callingUser.user_metadata?.full_name || 'Admin User',
+            role: 'admin',
+            active: true,
+            status: 'active'
+          }),
+          supabaseAdmin.from("user_roles").upsert({
+            user_id: callingUser.id,
+            role: 'admin'
+          }, { onConflict: 'user_id,role' })
+        ]).then(() => console.log('Synced admin data to profile and user_roles'));
+      }
+    }
+
+    if (!isAdmin) {
       throw new Error("Only admins can access user list");
     }
+    
+    console.log('User verified as admin, proceeding...');
 
     // Get all users with their profiles
     const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
