@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -21,32 +20,42 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Mock businesses data - in a real app, this would come from a database
-const businesses = [
-  { 
-    id: "acme", 
-    name: "Acme Corporation", 
-    logo: "/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png"
-  },
-  { 
-    id: "globex", 
-    name: "Globex Inc", 
-    logo: "/lovable-uploads/c66906f4-c804-47cb-a92a-164a88f1e0d4.png"
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClientSidebarProps {
   clientId?: string;
 }
 
-const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
+interface ClientData {
+  id: string;
+  business_name: string;
+}
+
+const ClientSidebar = ({ clientId }: ClientSidebarProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signOut } = useAuth();
+  const [clientData, setClientData] = useState<ClientData | null>(null);
 
-  // Find business data based on clientId
-  const businessData = businesses.find(b => b.id === clientId) || businesses[0];
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!clientId) return;
+      
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, business_name")
+        .eq("id", clientId)
+        .maybeSingle();
+      
+      if (data && !error) {
+        setClientData(data);
+      }
+    };
+
+    fetchClientData();
+  }, [clientId]);
+
+  const businessName = clientData?.business_name || "Loading...";
 
   const handleSignOut = async () => {
     try {
@@ -55,7 +64,7 @@ const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
         title: "Signed out",
         description: "You have been successfully signed out",
       });
-      navigate("/business-signin");
+      navigate("/signin");
     } catch (error) {
       console.error("Sign out error:", error);
       toast({
@@ -68,13 +77,8 @@ const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
 
   return (
     <aside className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white">
-      <div className="h-16 flex items-center justify-center border-b border-gray-200">
-        <img 
-          src={businessData.logo}
-          alt={`${businessData.name} Logo`} 
-          className="h-8 w-auto mr-2"
-        />
-        <h1 className="text-lg font-semibold">{businessData.name}</h1>
+      <div className="h-16 flex items-center justify-center border-b border-gray-200 px-4">
+        <h1 className="text-lg font-semibold truncate">{businessName}</h1>
       </div>
       <nav className="flex-1 py-4 px-2 space-y-1">
         <NavLink
@@ -248,7 +252,7 @@ const ClientSidebar = ({ clientId = 'acme' }: ClientSidebarProps) => {
         <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
           <Avatar className="h-8 w-8 mr-2">
             <AvatarFallback className="bg-primary text-white">
-              {businessData.name.charAt(0)}
+              {businessName.charAt(0)}
             </AvatarFallback>
           </Avatar>
           Sign Out
