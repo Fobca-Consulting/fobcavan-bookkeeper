@@ -330,14 +330,14 @@ const FobcaDashboard = () => {
             <p className="text-xs text-muted-foreground">
               Manage client accounts, access controls, and onboarding.
             </p>
-            <div className="grid gap-1.5">
-              <Button variant="outline" size="sm" className="justify-start text-xs h-8" asChild>
+            <div className="flex flex-col gap-1.5 items-start">
+              <Button variant="outline" size="sm" className="text-xs h-7 px-2" asChild>
                 <Link to="/fobca/client-management">
                   <Users className="mr-1.5 h-3 w-3" />
                   View All Clients
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="justify-start text-xs h-8">
+              <Button variant="outline" size="sm" className="text-xs h-7 px-2">
                 <UserCheck className="mr-1.5 h-3 w-3" />
                 Review Access Requests
               </Button>
