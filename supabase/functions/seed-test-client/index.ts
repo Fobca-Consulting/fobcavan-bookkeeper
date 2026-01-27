@@ -14,10 +14,53 @@ const handler = async (req: Request): Promise<Response> => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const email = "bilesanmioluwafayokunmi@gmail.com";
-    const password = "23456789";
-    const contactName = "Oluwafayokunmi Bilesanmi";
-    const businessName = "Bilesanmi Enterprise";
+    // First, delete the old Hollywood Arts client
+    const oldClientId = "7ea9d63f-2574-4d31-90f9-921632fc37df";
+    const oldUserId = "d36605f1-9a98-49df-9e21-7ec47b5bc808";
+
+    // Delete client_access entries
+    await supabaseAdmin.from("client_access").delete().eq("client_id", oldClientId);
+    
+    // Delete transactions for this client
+    await supabaseAdmin.from("transactions").delete().eq("client_id", oldClientId);
+    
+    // Delete customers for this client
+    await supabaseAdmin.from("customers").delete().eq("client_id", oldClientId);
+    
+    // Delete vendors for this client
+    await supabaseAdmin.from("vendors").delete().eq("client_id", oldClientId);
+    
+    // Delete client activities
+    await supabaseAdmin.from("client_activities").delete().eq("client_id", oldClientId);
+    
+    // Delete client revenue
+    await supabaseAdmin.from("client_revenue").delete().eq("client_id", oldClientId);
+    
+    // Delete accounting periods
+    await supabaseAdmin.from("accounting_periods").delete().eq("client_id", oldClientId);
+    
+    // Delete the client record
+    await supabaseAdmin.from("clients").delete().eq("id", oldClientId);
+    
+    // Delete user_roles for old user
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", oldUserId);
+    
+    // Delete profile for old user
+    await supabaseAdmin.from("profiles").delete().eq("id", oldUserId);
+    
+    // Delete the old auth user
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(oldUserId);
+      console.log("Deleted old Hollywood Arts user");
+    } catch (e) {
+      console.log("Old user may not exist:", e);
+    }
+
+    // Now create the new Hollywood Arts client
+    const email = "admin@ha.com";
+    const password = "98765432";
+    const contactName = "Austin Langfield";
+    const businessName = "Hollywood Arts";
 
     // Check if user already exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
@@ -76,14 +119,15 @@ const handler = async (req: Request): Promise<Response> => {
       await supabaseAdmin.from("clients").update({
         user_id: userId,
         portal_access: true,
-        contact_name: contactName
+        contact_name: contactName,
+        business_name: businessName
       }).eq("id", clientId);
     } else {
       const { data: newClient, error: clientError } = await supabaseAdmin
         .from("clients")
         .insert({
           business_name: businessName,
-          client_type: "individual",
+          client_type: "direct",
           contact_name: contactName,
           email: email,
           portal_access: true,
@@ -102,7 +146,13 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     return new Response(
-      JSON.stringify({ success: true, message: "Test client created successfully", userId, clientId }),
+      JSON.stringify({ 
+        success: true, 
+        message: "Old Hollywood Arts deleted and new client created successfully", 
+        userId, 
+        clientId,
+        credentials: { email, password }
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error: any) {
