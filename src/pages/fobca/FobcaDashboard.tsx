@@ -337,9 +337,9 @@ const FobcaDashboard = () => {
                   View All Clients
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="text-xs h-7 px-2">
-                <UserCheck className="mr-1.5 h-3 w-3" />
-                Review Access Requests
+              <Button variant="outline" size="sm" className="text-xs h-7 px-1.5">
+                <UserCheck className="mr-1 h-3 w-3" />
+                Access Requests
               </Button>
             </div>
           </CardContent>
