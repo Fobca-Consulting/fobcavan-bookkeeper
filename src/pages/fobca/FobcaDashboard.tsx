@@ -323,22 +323,22 @@ const FobcaDashboard = () => {
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Client Management</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Client Management</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
               Manage client accounts, access controls, and onboarding.
             </p>
-            <div className="grid gap-2">
-              <Button variant="outline" className="justify-start" asChild>
+            <div className="grid gap-1.5">
+              <Button variant="outline" size="sm" className="justify-start text-xs h-8" asChild>
                 <Link to="/fobca/client-management">
-                  <Users className="mr-2 h-4 w-4" />
+                  <Users className="mr-1.5 h-3 w-3" />
                   View All Clients
                 </Link>
               </Button>
-              <Button variant="outline" className="justify-start">
-                <UserCheck className="mr-2 h-4 w-4" />
+              <Button variant="outline" size="sm" className="justify-start text-xs h-8">
+                <UserCheck className="mr-1.5 h-3 w-3" />
                 Review Access Requests
               </Button>
             </div>
@@ -346,22 +346,22 @@ const FobcaDashboard = () => {
         </Card>
         
         <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">User Management</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
               Manage FOBCA staff accounts and permission levels.
             </p>
-            <div className="grid gap-2">
-              <Button variant="outline" className="justify-start" asChild>
+            <div className="grid gap-1.5">
+              <Button variant="outline" size="sm" className="justify-start text-xs h-8" asChild>
                 <Link to="/fobca/user-management">
-                  <Users className="mr-2 h-4 w-4" />
+                  <Users className="mr-1.5 h-3 w-3" />
                   Manage Users
                 </Link>
               </Button>
-              <Button variant="outline" className="justify-start">
-                <FileText className="mr-2 h-4 w-4" />
+              <Button variant="outline" size="sm" className="justify-start text-xs h-8">
+                <FileText className="mr-1.5 h-3 w-3" />
                 Activity Logs
               </Button>
             </div>
@@ -369,22 +369,22 @@ const FobcaDashboard = () => {
         </Card>
         
         <Card>
-          <CardHeader>
-            <CardTitle>System Settings</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">System Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
               Configure system-wide settings and preferences.
             </p>
-            <div className="grid gap-2">
-              <Button variant="outline" className="justify-start" asChild>
+            <div className="grid gap-1.5">
+              <Button variant="outline" size="sm" className="justify-start text-xs h-8" asChild>
                 <Link to="/fobca/settings">
-                  <Building className="mr-2 h-4 w-4" />
+                  <Building className="mr-1.5 h-3 w-3" />
                   Company Settings
                 </Link>
               </Button>
-              <Button variant="outline" className="justify-start">
-                <FileText className="mr-2 h-4 w-4" />
+              <Button variant="outline" size="sm" className="justify-start text-xs h-8">
+                <FileText className="mr-1.5 h-3 w-3" />
                 System Reports
               </Button>
             </div>
