@@ -64,6 +64,22 @@ const handler = async (req: Request): Promise<Response> => {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
+    // Re-check if user exists (another request may have created it)
+    const { data: recheckBeforeCreate } = await supabaseAdmin.auth.admin.listUsers();
+    const alreadyCreated = recheckBeforeCreate?.users?.find(u => u.email === email);
+    
+    if (alreadyCreated) {
+      console.log("Admin user already exists (created by concurrent request):", alreadyCreated.id);
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: "Admin user already exists",
+        user: { email, fullName }
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+    
     // Create new admin user
     console.log("Creating new admin user with email:", email);
     
@@ -78,14 +94,15 @@ const handler = async (req: Request): Promise<Response> => {
     });
     
     if (error) {
-      // Check if it's a duplicate error - user might have been created by concurrent request
-      if (error.message?.includes('duplicate') || error.message?.includes('already')) {
-        console.log("User was likely created by concurrent request, checking...");
+      // Check if it's a duplicate error - user was created by concurrent request
+      if (error.message?.includes('duplicate') || error.message?.includes('already') || error.status === 500) {
+        console.log("Duplicate detected, checking for existing user...");
         
-        const { data: recheckUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const justCreated = recheckUsers?.users?.find(u => u.email === email);
+        const { data: finalCheck } = await supabaseAdmin.auth.admin.listUsers();
+        const justCreated = finalCheck?.users?.find(u => u.email === email);
         
         if (justCreated) {
+          console.log("Found user created by concurrent request:", justCreated.id);
           return new Response(JSON.stringify({ 
             success: true,
             message: "Admin user exists (created by concurrent request)",
