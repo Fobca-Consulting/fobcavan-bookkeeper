@@ -97,6 +97,9 @@ runtime = "deno"
 runtime = "deno"
 [functions.get-users]
 runtime = "deno"
+[functions.seed-test-client]
+runtime = "deno"
+verify_jwt = false
 
 [analytics]
 enabled = false
