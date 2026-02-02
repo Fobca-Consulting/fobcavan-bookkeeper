@@ -264,38 +264,38 @@ const ClientDashboard = () => {
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1.5">
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-8 text-xs px-2" 
               variant="outline"
               onClick={() => setTransactionDialogOpen(true)}
             >
-              <CreditCard className="mr-2 h-4 w-4" />
-              Add Transaction
+              <CreditCard className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Add Transaction</span>
             </Button>
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-8 text-xs px-2" 
               variant="outline"
               onClick={() => setCustomerDialogOpen(true)}
             >
-              <Users className="mr-2 h-4 w-4" />
-              Add Customer
+              <Users className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Add Customer</span>
             </Button>
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-8 text-xs px-2" 
               variant="outline"
               onClick={() => setVendorDialogOpen(true)}
             >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Add Vendor
+              <ShoppingCart className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Add Vendor</span>
             </Button>
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-8 text-xs px-2" 
               variant="outline"
               onClick={() => handleExport('pdf')}
             >
-              <Download className="mr-2 h-4 w-4" />
-              Generate Report
+              <Download className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Generate Report</span>
             </Button>
           </CardContent>
         </Card>
