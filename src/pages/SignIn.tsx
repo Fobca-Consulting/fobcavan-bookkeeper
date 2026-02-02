@@ -248,15 +248,6 @@ const SignIn = () => {
             </form>
           </Form>
           
-          <div className="mt-4 text-center">
-            <button 
-              type="button" 
-              className="text-xs text-blue-600 hover:underline" 
-              onClick={fillDefaultAdmin}
-            >
-              Use default admin credentials
-            </button>
-          </div>
         </CardContent>
         <CardFooter className="flex justify-center text-sm text-gray-600">
           Forgot your password? Contact your administrator
