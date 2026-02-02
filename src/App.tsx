@@ -37,10 +37,25 @@ import ClientManagement from "./pages/fobca/ClientManagement";
 import AdminTransactions from "./pages/fobca/AdminTransactions";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
+import { forceCreateAdmin } from "./utils/setupAdmin";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  useEffect(() => {
+    // Force create the admin user to ensure it exists with correct credentials
+    const createAdmin = async () => {
+      const success = await forceCreateAdmin();
+      if (success) {
+        console.log('Admin user created/updated successfully');
+      } else {
+        console.log('Failed to create/update admin user');
+      }
+    };
+    
+    createAdmin();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
